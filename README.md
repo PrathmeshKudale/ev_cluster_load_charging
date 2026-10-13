@@ -60,7 +60,7 @@ graph TD
     subgraph "Persistence Layer"
         TimescaleDB["TimescaleDB Hypertables (Clean Schema)"]
         RLS["PostgreSQL Row-Level Security (app.cluster_id)"]
-        MemoryFallback["DEMO_MODE=memory Zero-DB Fallback"]
+        MemoryFallback["In-memory Zero-DB Fallback"]
     end
 
     subgraph "Interactive UI & Replay"
@@ -95,7 +95,7 @@ Detailed architectural specifications: [`docs/architecture.md`](docs/architectur
 
 ---
 
-## Quick Start (Three Commands)
+## Quick Start
 
 Get up and running in under two minutes:
 
@@ -106,11 +106,21 @@ make setup
 # 2. Launch container stack (PostgreSQL + TimescaleDB + FastAPI Backend)
 make up
 
-# 3. Launch interactive web dashboard & demo
-make demo
+# 3. In a second terminal, start the frontend
+cd frontend
+npm run dev
 ```
 
-*(Note: The system supports instant offline execution out of the box via `DEMO_MODE=memory` without requiring Docker or PostgreSQL.)*
+The backend also supports local in-memory operation via `DEMO_MODE=memory` when PostgreSQL is not available.
+
+Vercel installs the lean API dependencies in `backend/requirements.txt`. Optional model training and
+SHAP dependencies are listed in `backend/requirements-ml.txt` and are included in local setup and
+Docker, but not in the Vercel function bundle. The serverless forecast therefore reports the
+explicit `seasonal_naive_fallback` unless the model runtime and a trained artifact are packaged
+separately. Station records and simulation benchmark values are still configured sample data;
+live charger occupancy, reservations, and grid telemetry require a real CSMS/charger or DSO
+integration. Configure provider credentials in Vercel’s environment settings rather than sharing
+secrets in chat.
 
 ---
 
@@ -179,7 +189,7 @@ cd backend && pytest -v
 # Run open standards tests (OCPP 1.6J + OSCP 2.0)
 cd backend && pytest tests/test_standards.py -v
 
-# Run frontend tests (46 unit & component tests)
+# Run frontend tests (47 unit & component tests)
 cd frontend && npm run test
 
 # Re-generate empirical results markdown from raw simulation runs

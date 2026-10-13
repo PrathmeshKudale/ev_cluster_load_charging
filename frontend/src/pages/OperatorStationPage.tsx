@@ -1,226 +1,62 @@
 import React from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
+import { ArrowLeft, ExternalLink, RefreshCw } from 'lucide-react'
 import { useStation } from '@/lib/queries'
-import { useUIStore } from '@/store/uiStore'
-import { PageLoader, PageError } from '@/components/PageStates'
-import { stationsFixture } from '@/fixtures/stationsFixture'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Zap, Clock, Navigation, Activity, CheckCircle2 } from 'lucide-react'
+import { PageError, PageLoader } from '@/components/PageStates'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const OperatorStationPage: React.FC = () => {
-  const { id = 'S1' } = useParams<{ id: string }>()
-  const showToast = useUIStore((s) => s.showToast)
-  const { data, isLoading, error, refetch } = useStation(id)
+  const { id = '' } = useParams<{ id: string }>()
+  const { data: station, isLoading, error, refetch, isFetching } = useStation(id)
 
-  if (isLoading) {
-    return <PageLoader label={`Loading station diagnostics for ${id}...`} />
-  }
+  if (isLoading) return <PageLoader label={`Loading station ${id} configuration...`} />
+  if (error) return <PageError error={error as Error} reset={() => refetch()} />
+  if (!station) return <PageError error={new Error(`Station ${id} was not returned by the cluster service.`)} />
 
-  // Fallback to fixture if API item not found
-  const fallback = stationsFixture.find((s) => s.id === id) ?? stationsFixture[0]
-  const station = data ?? {
-    id: fallback.id,
-    name: fallback.name,
-    chargers: fallback.chargers_count,
-    kw: fallback.kw_per_charger,
-    detour: fallback.detour_min,
-    latitude: fallback.latitude,
-    longitude: fallback.longitude,
-    utilization_pct: fallback.utilization_percent,
-  }
-
-  if (error && !fallback) {
-    return <PageError error={error as Error} reset={() => refetch()} />
-  }
+  const locationUrl = station.latitude != null && station.longitude != null
+    ? `https://www.google.com/maps?q=${station.latitude},${station.longitude}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(station.name)}`
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Back button */}
-      <div>
-        <Link
-          to="/operator"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            color: 'var(--color-ink-300)',
-            textDecoration: 'none',
-            fontSize: '13px',
-            fontWeight: 500,
-          }}
-        >
-          <ArrowLeft size={14} />
-          <span>Back to Operator Overview</span>
-        </Link>
-      </div>
+      <Link to="/operator" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--color-ink-300)', textDecoration: 'none', fontSize: '13px' }}>
+        <ArrowLeft size={14} /> Back to Operator Overview
+      </Link>
 
-      {/* Station Title Card */}
       <Card>
         <CardHeader>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '8px',
-                  background: 'var(--color-trafo-blue)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                }}
-              >
-                <Zap size={22} />
-              </div>
-              <div>
-                <CardTitle style={{ fontSize: '18px' }}>{station.name} ({station.id})</CardTitle>
-                <p style={{ fontSize: '12px', color: 'var(--color-ink-300)', marginTop: '2px' }}>
-                  GPS: {station.latitude?.toFixed(4)}, {station.longitude?.toFixed(4)} • Feeder TX-100kVA
-                </p>
-              </div>
-            </div>
-
-            <div>
-              {(station.utilization_pct ?? 0) > 85 ? (
-                <Badge variant="crit">High Congestion ({station.utilization_pct}%)</Badge>
-              ) : (station.utilization_pct ?? 0) > 70 ? (
-                <Badge variant="warn">Moderate Load ({station.utilization_pct}%)</Badge>
-              ) : (
-                <Badge variant="normal">Optimal ({station.utilization_pct}%)</Badge>
-              )}
-            </div>
+          <div>
+            <CardTitle>{station.name} ({station.id})</CardTitle>
+            <p style={{ color: 'var(--color-ink-300)', fontSize: '13px', marginTop: '4px' }}>
+              Station configuration provided by the connected cluster service.
+            </p>
           </div>
+          <button type="button" disabled={isFetching} onClick={() => refetch()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <RefreshCw size={14} /> {isFetching ? 'Refreshing…' : 'Refresh'}
+          </button>
         </CardHeader>
-        <CardContent>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '16px',
-            }}
-          >
-            <div style={{ padding: '12px', background: 'var(--color-ink-900)', borderRadius: '6px', border: '1px solid var(--color-ink-800)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--color-ink-400)', textTransform: 'uppercase' }}>Available Bays</div>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: '#fff', marginTop: '4px' }}>
-                {station.chargers} Chargers
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--color-ink-300)', marginTop: '2px' }}>
-                Rated {station.kw} kW per charger
-              </div>
-            </div>
-
-            <div style={{ padding: '12px', background: 'var(--color-ink-900)', borderRadius: '6px', border: '1px solid var(--color-ink-800)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--color-ink-400)', textTransform: 'uppercase' }}>Detour Penalty</div>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-warn-amber)', marginTop: '4px' }}>
-                +{station.detour} min
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--color-ink-300)', marginTop: '2px' }}>
-                Relative to feeder centroid
-              </div>
-            </div>
-
-            <div style={{ padding: '12px', background: 'var(--color-ink-900)', borderRadius: '6px', border: '1px solid var(--color-ink-800)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--color-ink-400)', textTransform: 'uppercase' }}>Erlang-C Wait Est.</div>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-safe-green)', marginTop: '4px' }}>
-                {fallback.erlang_c_wait_min} min
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--color-ink-300)', marginTop: '2px' }}>
-                M/M/c queuing calculation
-              </div>
-            </div>
-
-            <div style={{ padding: '12px', background: 'var(--color-ink-900)', borderRadius: '6px', border: '1px solid var(--color-ink-800)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--color-ink-400)', textTransform: 'uppercase' }}>Feeder Power Demand</div>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-trafo-blue)', marginTop: '4px' }}>
-                {(station.chargers * station.kw * ((station.utilization_pct ?? 50) / 100)).toFixed(1)} kW
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--color-ink-300)', marginTop: '2px' }}>
-                Connected to Feeder T1
-              </div>
-            </div>
+        <CardContent style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px' }}>
+          <div><p>Installed chargers</p><strong>{station.chargers}</strong></div>
+          <div><p>Power per charger</p><strong>{station.kw} kW</strong></div>
+          <div><p>Route detour estimate</p><strong>{station.detour} min</strong></div>
+          <div>
+            <p>Coordinates</p>
+            <strong>{station.latitude != null && station.longitude != null
+              ? `${station.latitude.toFixed(5)}, ${station.longitude.toFixed(5)}`
+              : 'Not configured'}</strong>
           </div>
         </CardContent>
       </Card>
 
-      {/* Active Operator Controls */}
       <Card>
-        <CardHeader>
-          <CardTitle style={{ fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Activity size={18} color="var(--color-trafo-blue)" />
-            <span>Operator Remote Controls & Telemetry Dispatch</span>
-          </CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Live charger operations</CardTitle></CardHeader>
         <CardContent>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => {
-                refetch()
-                showToast(`Live diagnostics refreshed for station ${station.name} (${station.id}).`, 'success')
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                background: 'var(--color-ink-800)',
-                border: '1px solid var(--color-ink-600)',
-                borderRadius: '6px',
-                color: '#fff',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <Zap size={14} />
-              <span>Refresh Station Diagnostics</span>
-            </button>
-
-            <button
-              onClick={() => {
-                showToast(`[OCPP 1.6J] Reset(type='Soft') dispatched to ${station.id}. Response: Accepted`, 'info')
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                background: 'rgba(217, 119, 6, 0.16)',
-                border: '1px solid var(--color-warn-amber)',
-                borderRadius: '6px',
-                color: '#fff',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <Clock size={14} />
-              <span>Trigger OCPP 1.6J Soft Reset</span>
-            </button>
-
-            <button
-              onClick={() => {
-                showToast(`[OSCP 2.0] Capacity limit adjusted for ${station.id}. Dynamic load headroom optimized.`, 'success')
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                background: 'rgba(5, 150, 105, 0.16)',
-                border: '1px solid var(--color-safe-green)',
-                borderRadius: '6px',
-                color: '#fff',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <CheckCircle2 size={14} />
-              <span>Apply Dynamic OSCP Curtailment</span>
-            </button>
-          </div>
+          <p style={{ color: 'var(--color-ink-300)', fontSize: '13px' }}>
+            This API currently returns station configuration only. Live bay status and remote OCPP commands are not available for this station, so no status or command has been assumed.
+          </p>
+          <a href={locationUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '12px', color: 'var(--color-trafo-blue)' }}>
+            Open station location <ExternalLink size={14} />
+          </a>
         </CardContent>
       </Card>
     </div>

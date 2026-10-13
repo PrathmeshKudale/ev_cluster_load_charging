@@ -3,7 +3,7 @@ import { useSimulationMetrics } from '@/lib/queries'
 import { PageLoader, PageError } from '@/components/PageStates'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Zap, BookOpen, Layers, CheckCircle, Database } from 'lucide-react'
+import { Database } from 'lucide-react'
 
 export const AboutPage: React.FC = () => {
   const { data: metrics, isLoading, error, refetch } = useSimulationMetrics()
@@ -23,7 +23,7 @@ export const AboutPage: React.FC = () => {
           Methodology & System Architecture
         </h1>
         <p style={{ fontSize: '14px', color: 'var(--color-ink-300)', marginTop: '4px' }}>
-          Mathematical formulation and verified simulation results served directly from the backend API.
+          Mathematical formulation and benchmark results returned by the backend API.
         </p>
       </div>
 
@@ -34,19 +34,19 @@ export const AboutPage: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
               <CardTitle style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px' }}>
                 <Database size={18} color="var(--color-trafo-blue)" />
-                <span>Live Simulation Results Read from API (/metrics/simulation)</span>
+                <span>Simulation benchmark from API (/metrics/simulation)</span>
               </CardTitle>
-              <Badge variant="brand">Verified API Response</Badge>
+              <Badge variant="brand">API response</Badge>
             </div>
           </CardHeader>
           <CardContent>
             {metrics ? (() => {
               const fcfs = metrics.fcfs
               const smart = metrics.smart ?? metrics.smart_dispatch
-              const fcfsPeak = fcfs?.peak_load_pct ?? (fcfs?.peak_load_kw ? Number(((fcfs.peak_load_kw / 85.0) * 100).toFixed(1)) : 104.1)
-              const smartPeak = smart?.peak_load_pct ?? (smart?.peak_load_kw ? Number(((smart.peak_load_kw / 85.0) * 100).toFixed(1)) : 87.3)
-              const fcfsWait = fcfs?.mean_wait_min ?? 18.6
-              const smartWait = smart?.mean_wait_min ?? 8.1
+              const fcfsPeak = fcfs?.peak_load_pct
+              const smartPeak = smart?.peak_load_pct
+              const fcfsWait = fcfs?.mean_wait_min
+              const smartWait = smart?.mean_wait_min
 
               return (
                 <div
@@ -61,10 +61,10 @@ export const AboutPage: React.FC = () => {
                       FCFS Peak Load
                     </div>
                     <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-crit-red)', marginTop: '4px' }}>
-                      {fcfsPeak}%
+                      {fcfsPeak == null ? '—' : `${fcfsPeak}%`}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--color-ink-300)', marginTop: '2px' }}>
-                      Unmanaged baseline ({fcfs?.peak_load_kw ?? 88.5} kW)
+                      Unmanaged baseline ({fcfs?.peak_load_kw == null ? '—' : `${fcfs.peak_load_kw} kW`})
                     </div>
                   </div>
 
@@ -73,10 +73,10 @@ export const AboutPage: React.FC = () => {
                       Smart Peak Load
                     </div>
                     <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-safe-green)', marginTop: '4px' }}>
-                      {smartPeak}%
+                      {smartPeak == null ? '—' : `${smartPeak}%`}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--color-ink-300)', marginTop: '2px' }}>
-                      AHP + CP-SAT assignment ({smart?.peak_load_kw ?? 74.2} kW)
+                      Smart dispatch ({smart?.peak_load_kw == null ? '—' : `${smart.peak_load_kw} kW`})
                     </div>
                   </div>
 
@@ -85,7 +85,7 @@ export const AboutPage: React.FC = () => {
                       FCFS Mean Wait
                     </div>
                     <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-warn-amber)', marginTop: '4px' }}>
-                      {fcfsWait} min
+                      {fcfsWait == null ? '—' : `${fcfsWait} min`}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--color-ink-300)', marginTop: '2px' }}>
                       Queue bottleneck
@@ -97,7 +97,7 @@ export const AboutPage: React.FC = () => {
                       Smart Mean Wait
                     </div>
                     <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-trafo-blue)', marginTop: '4px' }}>
-                      {smartWait} min
+                      {smartWait == null ? '—' : `${smartWait} min`}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--color-ink-300)', marginTop: '2px' }}>
                       Erlang-C load balancing

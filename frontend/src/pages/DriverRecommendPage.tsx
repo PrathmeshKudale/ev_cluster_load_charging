@@ -1,100 +1,35 @@
-import React, { useState } from 'react'
 import { useRecommendations } from '@/lib/queries'
 import { useUIStore, type DriverMode } from '@/store/uiStore'
 import { RecommendationCard } from '@/features/recommend/RecommendationCard'
 import { PageLoader, PageError } from '@/components/PageStates'
-import { recommendationFixture, type CandidateRecommendation } from '@/fixtures/recommendationFixture'
+import type { CandidateRecommendation } from '@/fixtures/recommendationFixture'
 import { Zap, Clock, ShieldCheck, Scale } from 'lucide-react'
 
 export const DriverRecommendPage: React.FC = () => {
   const driverMode = useUIStore((s) => s.driverMode)
   const setDriverMode = useUIStore((s) => s.setDriverMode)
-
-  const [reservedStation, setReservedStation] = useState<string | null>(null)
   const showToast = useUIStore((s) => s.showToast)
   const { data: recData, isLoading, error, refetch } = useRecommendations({ mode: driverMode })
 
-  const handleReserve = (rec: CandidateRecommendation) => {
-    setReservedStation(rec.station_name)
-    showToast(`Bay at ${rec.station_name} confirmed & reserved! Navigation initiated.`, 'success')
-  }
-
-  // AHP weights rigorously derived from Saaty Pairwise Comparison Matrices (CR < 0.10)
-  const ahpWeightsByMode: Record<DriverMode, { wait: number; detour: number; balance: number; risk: number; formula: string }> = {
-    fastest: {
-      wait: 0.467,
-      detour: 0.278,
-      balance: 0.095,
-      risk: 0.160,
-      formula: 'J = 0.467·Wait + 0.278·Detour + 0.095·Imbalance + 0.160·Risk',
-    },
-    balanced: {
-      wait: 0.333,
-      detour: 0.222,
-      balance: 0.222,
-      risk: 0.222,
-      formula: 'J = 0.333·Wait + 0.222·Detour + 0.222·Imbalance + 0.222·Risk',
-    },
-    grid_friendly: {
-      wait: 0.141,
-      detour: 0.141,
-      balance: 0.263,
-      risk: 0.455,
-      formula: 'J = 0.141·Wait + 0.141·Detour + 0.263·Imbalance + 0.455·Risk',
-    },
-  }
-
-  const currentAHP = ahpWeightsByMode[driverMode]
-
-  // Use live API recommendations from /api/v1/recommend with real SHAP attributions
   const candidateList: CandidateRecommendation[] = (recData?.top3 && recData.top3.length > 0)
     ? recData.top3
-        .map((item) => {
-          const fixtureMatch = recommendationFixture.top3.find((f) => f.station_id === item.station_id)
-          const w = currentAHP
-
-          // Normalized criteria components [0, 1]
-          const wait_component = Number((Math.min(item.wait_min / 60, 1) * w.wait).toFixed(3))
-          const detour_component = Number((Math.min(item.detour_min / 20, 1) * w.detour).toFixed(3))
-          const imbalance_component = Number((Math.max((item.grid_load_pct - 50) / 50, 0) * w.balance).toFixed(3))
-          const risk_component = Number((Math.max((item.grid_load_pct - 80) / 20, 0) * w.risk).toFixed(3))
-          const dynamicScore = Number((item.score > 0 ? item.score : (wait_component + detour_component + imbalance_component + risk_component)).toFixed(3))
-
-          const modeReason = driverMode === 'fastest'
-            ? `${item.station} prioritized: 0 min wait & direct route under 46.7% wait weight.`
-            : driverMode === 'grid_friendly'
-            ? `${item.station} optimized for transformer preservation with 45.5% overload risk weight.`
-            : `${item.station} balanced assignment under AHP equal-compromise criteria.`
-
+        .map((item, index) => {
+          const stationName = item.station || item.station_id
           return {
-            rank: 1, // Will be reassigned after sorting
+            rank: index + 1,
             station_id: item.station_id,
-            station_name: item.station ?? fixtureMatch?.station_name ?? item.station_id,
+            station_name: stationName,
             hour: item.hour,
             starts_in_h: item.starts_in_h,
-            available_bays: fixtureMatch?.available_bays ?? (item.wait_min === 0 ? 3 : 1),
-            total_bays: fixtureMatch?.total_bays ?? 6,
-            charger_kw: fixtureMatch?.charger_kw ?? 7.4,
             wait_min: item.wait_min,
             detour_min: item.detour_min,
             grid_load_pct: item.grid_load_pct,
-            score: dynamicScore,
-            shap_reasons: item.shap_reasons && item.shap_reasons.length > 0
-              ? item.shap_reasons
-              : (fixtureMatch?.shap_reasons ?? []),
-            why_reason: modeReason,
-            score_breakdown: {
-              wait_component,
-              detour_component,
-              imbalance_component,
-              risk_component,
-              weights: { wait: w.wait, detour: w.detour, balance: w.balance, risk: w.risk },
-            },
+            score: item.score,
+            shap_reasons: item.shap_reasons,
+            why_reason: `${stationName} was ranked by the ${recData.mode} recommendation service. The service returned a ${item.wait_min.toFixed(1)} minute wait estimate, ${item.detour_min.toFixed(1)} minute detour, and ${item.grid_load_pct.toFixed(1)}% projected grid load.`,
           }
         })
-        .sort((a, b) => a.score - b.score)
-        .map((item, idx) => ({ ...item, rank: idx + 1 }))
-    : recommendationFixture.top3
+    : []
 
   const modes: Array<{
     id: DriverMode
@@ -142,11 +77,11 @@ export const DriverRecommendPage: React.FC = () => {
           Smart Charging Station Recommendation
         </h1>
         <p style={{ fontSize: '13px', color: 'var(--color-ink-300)', marginTop: '4px' }}>
-          Active Objective Function: <code style={{ color: 'var(--color-trafo-blue)', fontWeight: 600 }}>{currentAHP.formula}</code>
+          Choose how the recommendation service should prioritize wait time, detour, and grid load.
         </p>
       </div>
 
-      {/* Step 1: Mode Selector (Tap 1) */}
+      {/* Preference profile */}
       <section aria-label="Step 1: Select Driver Profile">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
           <span
@@ -166,7 +101,7 @@ export const DriverRecommendPage: React.FC = () => {
             1
           </span>
           <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-ink-100)' }}>
-            Choose Preference Profile (AHP Matrix)
+            Choose Preference Profile
           </span>
         </div>
 
@@ -184,7 +119,7 @@ export const DriverRecommendPage: React.FC = () => {
                 key={id}
                 onClick={() => {
                   setDriverMode(id)
-                  showToast(`Switched profile to "${label}". AHP weights updated: ${ahpWeightsByMode[id].formula}`, 'info')
+                  showToast(`Requesting ${label.toLowerCase()} recommendations.`, 'info')
                 }}
                 aria-pressed={isSelected}
                 style={{
@@ -231,7 +166,7 @@ export const DriverRecommendPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Step 2: Recommendations Result (Tap 2: View Top Options, Tap 3: Why Drawer) */}
+      {/* Recommendations returned by the API */}
       <section aria-label="Step 2: Recommended Stations">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
           <span
@@ -251,48 +186,9 @@ export const DriverRecommendPage: React.FC = () => {
             2
           </span>
           <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-ink-100)' }}>
-            Ranked Candidate Assignments (Consistency Ratio CR &lt; 0.10)
+            Ranked options returned by the recommendation service
           </span>
         </div>
-
-        {reservedStation && (
-          <div
-            style={{
-              padding: '14px 18px',
-              backgroundColor: 'rgba(5, 150, 105, 0.16)',
-              border: '1px solid var(--color-safe-green)',
-              borderRadius: '8px',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '16px',
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '15px' }}>
-                ✅ Reservation Confirmed at {reservedStation}
-              </div>
-              <div style={{ fontSize: '13px', color: 'var(--color-ink-200)', marginTop: '2px' }}>
-                Bay locked for next 20 minutes. Battery preconditioning active on your route.
-              </div>
-            </div>
-            <button
-              onClick={() => setReservedStation(null)}
-              style={{
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.3)',
-                color: '#fff',
-                borderRadius: '4px',
-                padding: '4px 10px',
-                fontSize: '12px',
-                cursor: 'pointer',
-              }}
-            >
-              Clear
-            </button>
-          </div>
-        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {candidateList.map((rec) => (
@@ -301,9 +197,13 @@ export const DriverRecommendPage: React.FC = () => {
               recommendation={rec}
               mode={driverMode}
               highlight={rec.rank === 1}
-              onReserve={handleReserve}
             />
           ))}
+          {candidateList.length === 0 && (
+            <p style={{ color: 'var(--color-ink-300)' }}>
+              The recommendation service returned no charging options for this profile.
+            </p>
+          )}
         </div>
       </section>
     </div>

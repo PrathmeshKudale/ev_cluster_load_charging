@@ -10,3 +10,4 @@ backend/data/
 *.db
 mlruns/
 .DS_Store
+.vercel

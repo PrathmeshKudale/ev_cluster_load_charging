@@ -4,16 +4,7 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import joblib
 import numpy as np
-import pandas as pd
-
-try:
-    from app.ml.train import CalibratedQuantileForecaster
-    if "__main__" in sys.modules and not hasattr(sys.modules["__main__"], "CalibratedQuantileForecaster"):
-        setattr(sys.modules["__main__"], "CalibratedQuantileForecaster", CalibratedQuantileForecaster)
-except Exception:
-    pass
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +77,10 @@ def compute_forecasts(
         return seasonal_naive_fallback(stations, transformer_kva, power_factor)
 
     try:
+        import joblib
+        import pandas as pd
         import app.ml.train as train_mod
+
         if "__main__" in sys.modules:
             setattr(sys.modules["__main__"], "CalibratedQuantileForecaster", train_mod.CalibratedQuantileForecaster)
         forecaster = joblib.load(model_path)

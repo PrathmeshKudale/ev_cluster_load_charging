@@ -27,7 +27,7 @@ export default defineConfig({
     {
       name: 'mobile-safari',
       use: { ...devices['iPhone 14'] },
-      testIgnore: ['**/screenshot.spec.ts'],  // screenshots use fixed viewports
+      testIgnore: ['**/screenshot.spec.ts'],
     },
   ],
 

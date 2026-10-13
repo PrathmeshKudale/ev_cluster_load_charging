@@ -1,6 +1,5 @@
 /**
- * MSW request handlers — mirrors the real FastAPI API v1.
- * Enabled when VITE_USE_MOCKS=true (or when backend is unavailable).
+ * Test-only MSW request handlers that mirror the FastAPI API v1.
  */
 import { http, HttpResponse } from 'msw'
 import { forecastFixture } from '@/fixtures/forecastFixture'
@@ -46,7 +45,7 @@ export const handlers = [
       latitude: s.latitude,
       longitude: s.longitude,
       utilization_pct: s.utilization_percent,
-      queue_count: s.erlang_c_wait_min > 5 ? 3 : 0,
+      queue_count: (s.erlang_c_wait_min ?? 0) > 5 ? 3 : 0,
     }))
     return HttpResponse.json({
       items,

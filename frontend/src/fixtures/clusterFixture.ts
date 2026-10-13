@@ -18,12 +18,12 @@ export interface ClusterFixture {
     chargers: number
     kw: number
     detour_min: number
-    latitude: number
-    longitude: number
-    active_chargers: number
-    current_kw: number
-    utilization_rate: number
-    status: 'available' | 'busy' | 'full'
+    latitude?: number
+    longitude?: number
+    active_chargers?: number
+    current_kw?: number
+    utilization_rate?: number
+    status?: 'available' | 'busy' | 'full'
   }>
   edges: StationEdgeFixture[]
 }

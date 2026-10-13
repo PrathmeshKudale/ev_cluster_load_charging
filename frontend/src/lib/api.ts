@@ -9,6 +9,12 @@
 
 const BASE_URL = (import.meta.env.VITE_API_URL ?? '/api/v1').replace(/\/$/, '')
 
+export function getApiWebSocketUrl(path: string): string {
+  const apiUrl = new URL(BASE_URL, window.location.origin)
+  const protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${apiUrl.host}${apiUrl.pathname.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
+}
+
 class ApiError extends Error {
   status: number
   body: unknown
@@ -221,7 +227,8 @@ export interface PaginatedStations {
 
 export const api = {
   clusters: {
-    list: () => apiFetch<ClusterResponse[]>('/clusters'),
+    list: () => apiFetch<ClusterResponse>('/clusters'),
+    get: (id: string) => apiFetch<ClusterResponse>(`/clusters/${encodeURIComponent(id)}`),
   },
 
   stations: {

@@ -22,22 +22,10 @@ const queryClient = new QueryClient({
   },
 })
 
-async function enableMocking() {
-  if (import.meta.env.VITE_USE_MOCKS === 'true') {
-    const { worker } = await import('./mocks/browser')
-    // Start worker in browser
-    await worker.start({
-      onUnhandledFrame: 'bypass',
-    })
-  }
-}
-
-enableMocking().then(() => {
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </StrictMode>
-  )
-})
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  </StrictMode>
+)

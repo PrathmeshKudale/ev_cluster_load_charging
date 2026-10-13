@@ -10,7 +10,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { alertFixture, type AlertItem } from '@/fixtures/alertFixture'
+import type { AlertItem } from '@/fixtures/alertFixture'
 
 export interface AlertFeedProps {
   alerts?: AlertItem[]
@@ -20,19 +20,15 @@ export interface AlertFeedProps {
 }
 
 export const AlertFeed: React.FC<AlertFeedProps> = ({
-  alerts = alertFixture,
+  alerts = [],
   onAcknowledge,
   onAction,
   maxItems,
 }) => {
-  const [items, setItems] = useState<AlertItem[]>(alerts)
   const [filter, setFilter] = useState<'all' | 'active' | 'crit'>('all')
 
   const handleAck = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, acknowledged: true } : item))
-    )
     onAcknowledge?.(id)
   }
 
@@ -41,16 +37,16 @@ export const AlertFeed: React.FC<AlertFeedProps> = ({
     onAction?.(item)
   }
 
-  const filteredItems = items
+  const filteredItems = alerts
     .filter((item) => {
       if (filter === 'active') return !item.acknowledged
       if (filter === 'crit') return item.severity === 'crit'
       return true
     })
-    .slice(0, maxItems ?? items.length)
+    .slice(0, maxItems ?? alerts.length)
 
-  const activeCount = items.filter((i) => !i.acknowledged).length
-  const critCount = items.filter((i) => i.severity === 'crit' && !i.acknowledged).length
+  const activeCount = alerts.filter((i) => !i.acknowledged).length
+  const critCount = alerts.filter((i) => i.severity === 'crit' && !i.acknowledged).length
 
   return (
     <Card style={{ width: '100%' }}>
@@ -94,7 +90,7 @@ export const AlertFeed: React.FC<AlertFeedProps> = ({
             variant={filter === 'all' ? 'secondary' : 'ghost'}
             onClick={() => setFilter('all')}
           >
-            All ({items.length})
+            All ({alerts.length})
           </Button>
           <Button
             size="sm"
@@ -253,7 +249,7 @@ export const AlertFeed: React.FC<AlertFeedProps> = ({
                     </Button>
                   )}
 
-                  {!isAck ? (
+                  {!isAck && onAcknowledge ? (
                     <Button
                       size="sm"
                       variant="ghost"

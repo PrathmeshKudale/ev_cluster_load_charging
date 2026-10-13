@@ -53,7 +53,7 @@ export const UnauthorizedPage: React.FC = () => {
           style={{
             padding: '8px 16px',
             borderRadius: '6px',
-            background: 'var(--color-trafo-blue)',
+            background: 'var(--color-trafo-blue-hover)',
             color: '#fff',
             border: 'none',
             fontSize: '13px',

@@ -1,14 +1,11 @@
-.PHONY: setup up demo results test seed migrate migrate-down migrate-check ingest train simulate down lint
+.PHONY: setup up results test seed migrate migrate-down migrate-check ingest train simulate down lint
 
 setup:
-	python -m pip install -r backend/requirements.txt
+	python -m pip install -r backend/requirements.txt -r backend/requirements-ml.txt
 	cd frontend && npm install
 
 up:
 	docker compose up --build
-
-demo:
-	cd frontend && npm run demo
 
 results:
 	python scripts/generate_results_md.py

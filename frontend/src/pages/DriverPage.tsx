@@ -4,8 +4,8 @@ import { useUIStore } from '@/store/uiStore'
 import { ClusterMap } from '@/features/cluster/ClusterMap'
 import { StationCard } from '@/features/cluster/StationCard'
 import { PageLoader, PageError } from '@/components/PageStates'
-import { clusterFixture } from '@/fixtures/clusterFixture'
-import { stationsFixture, type StationDetailFixture } from '@/fixtures/stationsFixture'
+import type { ClusterFixture } from '@/fixtures/clusterFixture'
+import type { StationDetailFixture } from '@/fixtures/stationsFixture'
 import { MapPin, Navigation } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -14,7 +14,7 @@ export const DriverPage: React.FC = () => {
   const setSelectedStationId = useUIStore((s) => s.setSelectedStationId)
   const showToast = useUIStore((s) => s.showToast)
 
-  const { data: _clustersData, isLoading: clusterLoading, error: clusterError, refetch: refetchClusters } = useClusters()
+  const { data: clusterData, isLoading: clusterLoading, error: clusterError, refetch: refetchClusters } = useClusters()
   const { data: stationsData, isLoading: stationsLoading, error: stationsError, refetch: refetchStations } = useStations()
 
   if (clusterLoading || stationsLoading) {
@@ -33,27 +33,39 @@ export const DriverPage: React.FC = () => {
     )
   }
 
-  // Use API stations if returned, otherwise fallback to fixture
-  const stationsList: StationDetailFixture[] = stationsData?.items && stationsData.items.length > 0
-    ? stationsData.items.map((item) => {
-        const existing = stationsFixture.find((s) => s.id === item.id)
-        return {
-          id: item.id,
-          name: item.name,
-          cluster_id: 'C1',
-          chargers_count: item.chargers,
-          kw_per_charger: item.kw,
-          detour_min: item.detour,
-          latitude: item.latitude ?? existing?.latitude ?? 12.9716,
-          longitude: item.longitude ?? existing?.longitude ?? 77.5946,
-          utilization_percent: item.utilization_pct ?? existing?.utilization_percent ?? 50,
-          erlang_c_wait_min: (item.queue_count ?? 0) > 0 ? 5.8 : (existing?.erlang_c_wait_min ?? 0.0),
-          active_sessions: existing?.active_sessions ?? Math.round(item.chargers * 0.5),
-          current_active_kw: existing?.current_active_kw ?? Math.round(item.chargers * item.kw * 0.5),
-          chargers: existing?.chargers ?? [],
-        }
-      })
-    : stationsFixture
+  if (!clusterData || !stationsData) {
+    return <PageError error={new Error('The cluster service returned an incomplete response.')} />
+  }
+
+  const stationsList: StationDetailFixture[] = (stationsData?.items ?? []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    cluster_id: 'C1',
+    chargers_count: item.chargers,
+    kw_per_charger: item.kw,
+    detour_min: item.detour,
+    latitude: item.latitude,
+    longitude: item.longitude,
+  }))
+
+  const clusterMapData: ClusterFixture = {
+    cluster_id: 'C1',
+    name: 'Charging station cluster',
+    transformer_id: 'T1',
+    transformer_name: 'Cluster transformer',
+    rating_kva: clusterData.transformer_kva,
+    power_factor: clusterData.power_factor,
+    stations: clusterData.stations.map((station) => ({
+      id: station.id,
+      name: station.name,
+      chargers: station.chargers,
+      kw: station.kw,
+      detour_min: station.detour,
+      latitude: station.latitude,
+      longitude: station.longitude,
+    })),
+    edges: [],
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -87,7 +99,7 @@ export const DriverPage: React.FC = () => {
               Substation Cluster Station Map
             </h1>
             <p style={{ fontSize: '13px', color: 'var(--color-ink-300)', margin: '2px 0 0' }}>
-              Select a hub on the radial topology to inspect wait times, chargers, and detour.
+              Station locations, charger capacity, and route recommendations from the connected cluster service.
             </p>
           </div>
         </div>
@@ -114,7 +126,7 @@ export const DriverPage: React.FC = () => {
       {/* Cluster Map SVG */}
       <section aria-label="Interactive Cluster Map">
         <ClusterMap
-          data={clusterFixture}
+          data={clusterMapData}
           selectedStationId={selectedStationId}
           onSelectStation={(id) => {
             setSelectedStationId(id)
@@ -155,6 +167,11 @@ export const DriverPage: React.FC = () => {
               />
             </div>
           ))}
+          {stationsList.length === 0 && (
+            <p style={{ color: 'var(--color-ink-300)' }}>
+              No stations are configured for this cluster.
+            </p>
+          )}
         </div>
       </section>
     </div>

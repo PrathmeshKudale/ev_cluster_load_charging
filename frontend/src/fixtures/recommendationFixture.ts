@@ -4,14 +4,14 @@ export interface CandidateRecommendation {
   station_name: string
   hour: number
   starts_in_h: number
-  available_bays: number
-  total_bays: number
-  charger_kw: number
+  available_bays?: number
+  total_bays?: number
+  charger_kw?: number
   wait_min: number
   detour_min: number
   grid_load_pct: number
   score: number
-  score_breakdown: {
+  score_breakdown?: {
     wait_component: number
     detour_component: number
     imbalance_component: number

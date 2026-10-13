@@ -7,16 +7,14 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { patchForecastCache } from './queries'
+import { getApiWebSocketUrl } from './api'
 import { useUIStore } from '../store/uiStore'
 
 function getWsUrl(): string {
   if (import.meta.env.VITE_WS_URL) {
     return import.meta.env.VITE_WS_URL.replace(/\/$/, '')
   }
-  if (typeof window !== 'undefined') {
-    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    return `${proto}//${window.location.host}/api/v1/ws/live`
-  }
+  if (typeof window !== 'undefined') return getApiWebSocketUrl('ws/live')
   return 'ws://localhost:8000/api/v1/ws/live'
 }
 
@@ -38,7 +36,9 @@ export function useWebSocket(enabled = true) {
   const showToast = useUIStore((s) => s.showToast)
   const accessToken = useUIStore((s) => s.accessToken)
 
-  const connect = useCallback(() => {
+  const shouldReconnect = useRef(false)
+
+  const connect = useCallback(function connectSocket() {
     if (!enabled) return
     const url = accessToken ? `${WS_URL}?token=${accessToken}` : WS_URL
     const ws = new WebSocket(url)
@@ -86,18 +86,23 @@ export function useWebSocket(enabled = true) {
     }
 
     ws.onclose = () => {
+      if (wsRef.current !== ws || !shouldReconnect.current) return
       wsRef.current = null
       const delay = Math.min(BASE_DELAY_MS * 2 ** retryCount.current, MAX_DELAY_MS)
       retryCount.current += 1
-      retryTimer.current = setTimeout(connect, delay)
+      retryTimer.current = setTimeout(connectSocket, delay)
     }
   }, [enabled, qc, showToast, accessToken])
 
   useEffect(() => {
+    shouldReconnect.current = true
     connect()
     return () => {
+      shouldReconnect.current = false
       if (retryTimer.current) clearTimeout(retryTimer.current)
-      wsRef.current?.close()
+      const ws = wsRef.current
+      wsRef.current = null
+      ws?.close()
     }
   }, [connect])
 

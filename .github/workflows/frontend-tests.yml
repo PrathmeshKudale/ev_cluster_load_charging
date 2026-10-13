@@ -65,11 +65,8 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Build app (mock mode)
+      - name: Build app
         run: npm run build
-        env:
-          VITE_USE_MOCKS: 'true'
-          VITE_API_BASE_URL: ''
 
       - name: Start preview server
         run: npx vite preview --port 5173 &
@@ -80,7 +77,7 @@ jobs:
         run: npx wait-on http://localhost:5173 --timeout 30000
 
       - name: Run Playwright tests (golden path + axe)
-        run: npx playwright test e2e/golden-path.spec.ts e2e/accessibility.spec.ts
+        run: npx playwright test e2e/golden-path.spec.ts e2e/accessibility.spec.ts --project=chromium
         env:
           PLAYWRIGHT_BASE_URL: 'http://localhost:5173'
           CI: 'true'

@@ -5,34 +5,29 @@ import {
   Navigation,
   ShieldCheck,
   HelpCircle,
-  Scale,
   Cpu,
+  Scale,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Drawer } from '@/components/ui/drawer'
 import { Progress } from '@/components/ui/progress'
-import {
-  recommendationFixture,
-  type CandidateRecommendation,
-} from '@/fixtures/recommendationFixture'
+import type { CandidateRecommendation } from '@/fixtures/recommendationFixture'
 
 export interface RecommendationCardProps {
-  recommendation?: CandidateRecommendation
+  recommendation: CandidateRecommendation
   mode?: 'fastest' | 'balanced' | 'grid_friendly'
-  onReserve?: (recommendation: CandidateRecommendation) => void
   highlight?: boolean
 }
 
 export const RecommendationCard: React.FC<RecommendationCardProps> = ({
-  recommendation = recommendationFixture.top3[0],
+  recommendation,
   mode = 'balanced',
-  onReserve,
   highlight = true,
 }) => {
   const [whyDrawerOpen, setWhyDrawerOpen] = useState(false)
   const isTopRank = recommendation.rank === 1
+  const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(recommendation.station_name)}`
 
   return (
     <>
@@ -68,7 +63,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
             >
               J = {recommendation.score.toFixed(3)}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--color-ink-300)' }}>Cost Score (Min)</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-ink-300)' }}>Optimizer Score</div>
           </div>
         </CardHeader>
 
@@ -160,8 +155,10 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
             }}
           >
             <span>
-              {recommendation.available_bays} of {recommendation.total_bays} bays available •{' '}
-              {recommendation.charger_kw} kW Type 2
+              {recommendation.available_bays != null && recommendation.total_bays != null
+                ? `${recommendation.available_bays} of ${recommendation.total_bays} bays available`
+                : 'Live bay availability not provided'}
+              {recommendation.charger_kw != null && ` • ${recommendation.charger_kw} kW`}
             </span>
             <button
               onClick={() => setWhyDrawerOpen(true)}
@@ -184,16 +181,28 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
             </button>
           </div>
 
-          {/* Primary Action Button (The 3rd tap in the driver flow) */}
-          <Button
-            variant="primary"
-            size="md"
-            style={{ width: '100%' }}
-            onClick={() => onReserve?.(recommendation)}
-            icon={<Zap size={16} />}
+          <a
+            href={directionsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              width: '100%',
+              minHeight: '44px',
+              padding: '10px 18px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--color-trafo-blue)',
+              color: '#fff',
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
           >
-            Reserve Bay & Start Route
-          </Button>
+            <Navigation size={16} />
+            Get Directions
+          </a>
         </CardContent>
       </Card>
 
@@ -219,7 +228,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
           >
             <strong>Optimization Rationale:</strong>
             <p style={{ marginTop: '6px', color: 'var(--color-ink-200)' }}>
-              {recommendation.why_reason}
+              {recommendation.why_reason ?? 'This station was ranked by the recommendation service using its returned score and constraints.'}
             </p>
           </div>
 
@@ -233,14 +242,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
               Attributing forecasted cluster &amp; station power demand (kW) to input features via exact TreeSHAP:
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
-              {(recommendation.shap_reasons && recommendation.shap_reasons.length > 0
-                ? recommendation.shap_reasons
-                : [
-                    'Station bay headroom availability (-5.42 kW effect)',
-                    'Diurnal afternoon lull timing (-3.85 kW effect)',
-                    'Recent 1-hour load persistence (-1.20 kW effect)',
-                  ]
-              ).map((reason, idx) => (
+              {(recommendation.shap_reasons ?? []).map((reason, idx) => (
                 <div
                   key={idx}
                   style={{
@@ -273,9 +275,16 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
                   <span style={{ color: 'var(--color-ink-100)', flex: 1 }}>{reason}</span>
                 </div>
               ))}
+              {(!recommendation.shap_reasons || recommendation.shap_reasons.length === 0) && (
+                <p style={{ color: 'var(--color-ink-300)', fontSize: '13px' }}>
+                  The recommendation service did not return feature attributions for this result.
+                </p>
+              )}
             </div>
           </div>
 
+          {recommendation.score_breakdown && (
+          <>
           {/* Multi-Objective Mathematical Formulation */}
           <div>
             <div
@@ -424,17 +433,32 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
               recommendation pushes transformer load above 90% when feasible slots exist.
             </span>
           </div>
+          </>
+          )}
 
-          <Button
-            variant="primary"
-            style={{ width: '100%', marginTop: '8px' }}
-            onClick={() => {
-              setWhyDrawerOpen(false)
-              onReserve?.(recommendation)
+          <a
+            href={directionsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              width: '100%',
+              minHeight: '44px',
+              marginTop: '8px',
+              padding: '10px 18px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--color-trafo-blue)',
+              color: '#fff',
+              fontWeight: 700,
+              textDecoration: 'none',
             }}
           >
-            Accept Rationale & Reserve Slot
-          </Button>
+            <Navigation size={16} />
+            Get Directions
+          </a>
         </div>
       </Drawer>
     </>

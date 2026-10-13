@@ -5,15 +5,12 @@ import { StationCard } from '@/features/cluster/StationCard'
 import { AlertFeed } from '@/features/transformer/AlertFeed'
 import { TransformerGauge } from '@/features/transformer/TransformerGauge'
 import { PageLoader, PageError } from '@/components/PageStates'
-import { forecastFixture, type ForecastFixture } from '@/fixtures/forecastFixture'
-import { stationsFixture, type StationDetailFixture } from '@/fixtures/stationsFixture'
-import { transformerFixture } from '@/fixtures/transformerFixture'
+import type { StationDetailFixture } from '@/fixtures/stationsFixture'
 import { Cpu, RefreshCw } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useUIStore } from '@/store/uiStore'
 
 export const OperatorPage: React.FC = () => {
-  const navigate = useNavigate()
   const showToast = useUIStore((s) => s.showToast)
   const { data: forecastData, isLoading: forecastLoading, error: forecastError, refetch: refetchForecast } = useForecast()
   const { data: stationsData, isLoading: stationsLoading, error: stationsError, refetch: refetchStations } = useStations()
@@ -36,41 +33,39 @@ export const OperatorPage: React.FC = () => {
     )
   }
 
-  // Active forecast mapping
-  const activeForecast: ForecastFixture = forecastData
-    ? {
-        ...forecastFixture,
-        hours: forecastData.hours,
-        p10: forecastData.p10,
-        p50: forecastData.p50,
-        p90: forecastData.p90,
-        warn_limit_pct: forecastData.warn,
-        crit_limit_pct: forecastData.critical,
-        model_version: forecastData.model_version,
-      }
-    : forecastFixture
+  if (!forecastData || !stationsData || !riskData) {
+    return <PageError error={new Error('The grid service returned an incomplete response.')} />
+  }
 
-  // Active stations mapping
-  const stationsList: StationDetailFixture[] = stationsData?.items && stationsData.items.length > 0
-    ? stationsData.items.map((item) => {
-        const existing = stationsFixture.find((s) => s.id === item.id)
-        return {
-          id: item.id,
-          name: item.name,
-          cluster_id: 'C1',
-          chargers_count: item.chargers,
-          kw_per_charger: item.kw,
-          detour_min: item.detour,
-          latitude: item.latitude ?? existing?.latitude ?? 12.9716,
-          longitude: item.longitude ?? existing?.longitude ?? 77.5946,
-          utilization_percent: item.utilization_pct ?? existing?.utilization_percent ?? 55,
-          erlang_c_wait_min: (item.queue_count ?? 0) > 0 ? 5.8 : (existing?.erlang_c_wait_min ?? 1.5),
-          active_sessions: existing?.active_sessions ?? Math.round(item.chargers * 0.5),
-          current_active_kw: existing?.current_active_kw ?? Math.round(item.chargers * item.kw * 0.5),
-          chargers: existing?.chargers ?? [],
-        }
-      })
-    : stationsFixture
+  const activeForecast = {
+    hours: forecastData.hours,
+    p10: forecastData.p10,
+    p50: forecastData.p50,
+    p90: forecastData.p90,
+    warn: forecastData.warn,
+    critical: forecastData.critical,
+    model_version: forecastData.model_version,
+  }
+
+  const stationsList: StationDetailFixture[] = stationsData.items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    cluster_id: 'C1',
+    chargers_count: item.chargers,
+    kw_per_charger: item.kw,
+    detour_min: item.detour,
+    latitude: item.latitude,
+    longitude: item.longitude,
+  }))
+
+  const activeAlerts = riskData.level === 'ok' ? [] : [{
+    id: `${riskData.transformer_id}-${riskData.level}-${riskData.peak_hour}`,
+    timestamp: `Forecast peak at ${String(riskData.peak_hour).padStart(2, '0')}:00`,
+    severity: riskData.level === 'critical' ? 'crit' as const : 'warn' as const,
+    entity_type: 'transformer' as const,
+    entity_id: riskData.transformer_id,
+    message: `P90 forecast peaks at ${riskData.peak_p90_pct.toFixed(1)}% of ${riskData.kva} kVA capacity.`,
+  }]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -157,28 +152,14 @@ export const OperatorPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <TransformerGauge
             data={{
-              ...transformerFixture,
-              loading_percent: riskData?.peak_p90_pct ?? transformerFixture.loading_percent,
-              rating_kva: riskData?.kva ?? 100,
+              loading_percent: riskData.peak_p90_pct,
+              rating_kva: riskData.kva,
             }}
-            warnThreshold={riskData?.warn_threshold_pct ?? 80}
-            critThreshold={riskData?.crit_threshold_pct ?? 90}
+            warnThreshold={riskData.warn_threshold_pct}
+            critThreshold={riskData.crit_threshold_pct}
           />
           <AlertFeed
-            onAction={(item) => {
-              if (item.action_label?.toLowerCase().includes('reroute') || item.entity_type === 'station') {
-                showToast(`Rerouting drivers away from ${item.entity_id || 'station'}... Initiating dispatch`, 'info')
-                navigate('/driver/recommend')
-              } else if (item.action_label?.toLowerCase().includes('headroom') || item.entity_type === 'transformer') {
-                showToast('Reviewing transformer thermal headroom...', 'info')
-                navigate('/operator/transformer')
-              } else {
-                showToast(`Action dispatched: ${item.action_label || 'Resolved'}`, 'success')
-              }
-            }}
-            onAcknowledge={(alertId) => {
-              showToast(`Alert ${alertId} acknowledged`, 'info')
-            }}
+            alerts={activeAlerts}
           />
         </div>
       </div>
@@ -210,6 +191,11 @@ export const OperatorPage: React.FC = () => {
               <StationCard station={st} />
             </Link>
           ))}
+          {stationsList.length === 0 && (
+            <p style={{ color: 'var(--color-ink-300)' }}>
+              No stations are configured for this cluster.
+            </p>
+          )}
         </div>
       </section>
     </div>

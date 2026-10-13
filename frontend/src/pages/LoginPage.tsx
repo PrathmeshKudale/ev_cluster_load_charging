@@ -52,14 +52,6 @@ const LoginPage: React.FC = () => {
     }
   }
 
-  // Quick-fill helper for demo / judge accounts (sets form via localStorage is complex;
-  // keep simple: render preset buttons that programmatically submit the form)
-  const DEMO_ACCOUNTS = [
-    { label: 'Operator', icon: '⚡', user: 'operator', pass: 'operator123' },
-    { label: 'Driver', icon: '🚗', user: 'driver', pass: 'driver123' },
-    { label: 'Judge', icon: '⚖️', user: 'judge', pass: 'judge123' },
-  ]
-
   return (
     <div
       style={{
@@ -104,47 +96,6 @@ const LoginPage: React.FC = () => {
               serverError={serverError}
             />
 
-            {/* Demo quick-fill */}
-            <div
-              style={{
-                marginTop: '24px',
-                paddingTop: '16px',
-                borderTop: '1px solid var(--color-ink-800)',
-              }}
-            >
-              <p
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--color-ink-400)',
-                  textTransform: 'uppercase',
-                  marginBottom: '8px',
-                  textAlign: 'center',
-                }}
-              >
-                Judge / Demo Quick Fill
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {DEMO_ACCOUNTS.map(({ label, icon, user, pass }) => (
-                  <button
-                    key={user}
-                    type="button"
-                    onClick={() => handleSubmit({ username: user, password: pass })}
-                    style={{
-                      padding: '6px 10px',
-                      background: 'var(--color-ink-900)',
-                      border: '1px solid var(--color-ink-700)',
-                      borderRadius: '4px',
-                      color: 'var(--color-ink-200)',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-                    {icon} <strong>{label}</strong>: {user} / {pass}
-                  </button>
-                ))}
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>

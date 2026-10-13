@@ -51,4 +51,19 @@ describe('F4: RouteGuard and role-based access control', () => {
     // Should render operator content
     expect(screen.getByText('Operator Control Room')).toBeInTheDocument()
   })
+
+  it('allows an operator deep link before URL state hydrates the store', () => {
+    render(
+      <MemoryRouter initialEntries={['/operator?persona=operator']}>
+        <Routes>
+          <Route element={<RouteGuard require="operator" />}>
+            <Route path="/operator" element={<div>Operator Control Room</div>} />
+          </Route>
+          <Route path="/unauthorized" element={<div>Access Denied Unauthorized</div>} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('Operator Control Room')).toBeInTheDocument()
+  })
 })

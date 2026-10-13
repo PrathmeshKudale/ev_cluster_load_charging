@@ -4,25 +4,28 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { stationsFixture, type StationDetailFixture } from '@/fixtures/stationsFixture'
+import type { StationDetailFixture } from '@/fixtures/stationsFixture'
 
 export interface StationCardProps {
-  station?: StationDetailFixture
+  station: StationDetailFixture
   onSelect?: (stationId: string) => void
   selected?: boolean
 }
 
 export const StationCard: React.FC<StationCardProps> = ({
-  station = stationsFixture[0],
+  station,
   onSelect,
   selected = false,
 }) => {
-  const availableCount = station.chargers.filter((c) => c.status === 'Available').length
-  const isFull = availableCount === 0
-  const isBusy = station.utilization_percent >= 80
+  const chargerDetails = station.chargers ?? []
+  const availableCount = chargerDetails.filter((c) => c.status === 'Available').length
+  const hasLiveChargerData = chargerDetails.length > 0
+  const utilization = station.utilization_percent
+  const isFull = hasLiveChargerData && availableCount === 0
+  const isBusy = utilization != null && utilization >= 80
 
-  const statusVariant = isFull ? 'crit' : isBusy ? 'warn' : 'normal'
-  const statusLabel = isFull ? 'ALL FULL' : isBusy ? 'HIGH QUEUE' : `${availableCount} FREE`
+  const statusVariant = isFull ? 'crit' : isBusy ? 'warn' : hasLiveChargerData ? 'normal' : 'neutral'
+  const statusLabel = isFull ? 'ALL FULL' : isBusy ? 'HIGH LOAD' : hasLiveChargerData ? `${availableCount} FREE` : 'LIVE STATUS UNAVAILABLE'
 
   return (
     <Card
@@ -42,7 +45,7 @@ export const StationCard: React.FC<StationCardProps> = ({
             </span>
           </CardTitle>
           <div style={{ fontSize: '13px', color: 'var(--color-ink-300)', marginTop: '2px' }}>
-            {station.chargers_count} Plugs • {station.kw_per_charger} kW Type 2 AC
+            {station.chargers_count} chargers • {station.kw_per_charger} kW per charger
           </div>
         </div>
         <Badge
@@ -52,8 +55,10 @@ export const StationCard: React.FC<StationCardProps> = ({
               <AlertCircle size={12} />
             ) : isBusy ? (
               <AlertTriangle size={12} />
-            ) : (
+            ) : hasLiveChargerData ? (
               <CheckCircle2 size={12} />
+            ) : (
+              <Clock size={12} />
             )
           }
         >
@@ -64,11 +69,19 @@ export const StationCard: React.FC<StationCardProps> = ({
       <CardContent>
         {/* Real-time Utilization Bar */}
         <div style={{ marginBottom: '14px' }}>
-          <Progress
-            value={station.utilization_percent}
-            showLabel
-            label={`Occupancy (${station.active_sessions}/${station.chargers_count} in use)`}
-          />
+          {utilization != null ? (
+            <Progress
+              value={utilization}
+              showLabel
+              label={station.active_sessions != null
+                ? `Occupancy (${station.active_sessions}/${station.chargers_count} in use)`
+                : 'Occupancy'}
+            />
+          ) : (
+            <p style={{ fontSize: '12px', color: 'var(--color-ink-400)' }}>
+              Live charger occupancy is not provided by the connected station feed.
+            </p>
+          )}
         </div>
 
         {/* Operational Metrics Grid */}
@@ -90,7 +103,7 @@ export const StationCard: React.FC<StationCardProps> = ({
               style={{
                 fontSize: '15px',
                 fontWeight: 700,
-                color: station.erlang_c_wait_min > 10 ? 'var(--color-crit-red)' : 'var(--color-ink-100)',
+                color: (station.erlang_c_wait_min ?? 0) > 10 ? 'var(--color-crit-red)' : 'var(--color-ink-100)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -98,7 +111,7 @@ export const StationCard: React.FC<StationCardProps> = ({
               }}
             >
               <Clock size={14} color="var(--color-ink-300)" />
-              {station.erlang_c_wait_min.toFixed(1)} m
+              {station.erlang_c_wait_min != null ? `${station.erlang_c_wait_min.toFixed(1)} m` : '—'}
             </div>
           </div>
 
@@ -136,7 +149,7 @@ export const StationCard: React.FC<StationCardProps> = ({
               }}
             >
               <BatteryCharging size={14} color="var(--color-trafo-blue)" />
-              {station.current_active_kw} kW
+              {station.current_active_kw != null ? `${station.current_active_kw} kW` : '—'}
             </div>
           </div>
         </div>
@@ -147,7 +160,7 @@ export const StationCard: React.FC<StationCardProps> = ({
             Live Bay Status
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {station.chargers.map((ch) => {
+            {hasLiveChargerData ? chargerDetails.map((ch) => {
               const isChCharging = ch.status === 'Charging'
               return (
                 <div
@@ -165,7 +178,11 @@ export const StationCard: React.FC<StationCardProps> = ({
                   #{ch.evse_id}: {ch.status.toUpperCase()}
                 </div>
               )
-            })}
+            }) : (
+              <span style={{ fontSize: '12px', color: 'var(--color-ink-400)' }}>
+                No live plug status reported
+              </span>
+            )}
           </div>
         </div>
 

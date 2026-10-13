@@ -4,7 +4,7 @@
  * Redirects to /login if unauthenticated (when auth is enforced).
  */
 import React from 'react'
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom'
 import { useUIStore } from '../store/uiStore'
 
 export type RequiredRole = 'driver' | 'operator' | 'admin' | 'any'
@@ -21,7 +21,9 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
 }) => {
   const accessToken = useUIStore((s) => s.accessToken)
   const userRole = useUIStore((s) => s.userRole)
+  const persona = useUIStore((s) => s.persona)
   const location = useLocation()
+  const [searchParams] = useSearchParams()
 
   // Auth check — only if backend auth is configured
   if (requireAuth && !accessToken) {
@@ -36,8 +38,9 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
       operator: 3,
       admin: 4,
     }
-    const persona = useUIStore.getState().persona
-    const effectiveRole = userRole ?? persona ?? 'driver'
+    const personaParam = searchParams.get('persona')
+    const urlPersona = personaParam === 'driver' || personaParam === 'operator' ? personaParam : null
+    const effectiveRole = userRole ?? urlPersona ?? persona
     const required = roleHierarchy[require] ?? 1
     const current = roleHierarchy[effectiveRole] ?? 0
     if (current < required) {

@@ -2,7 +2,7 @@ import React, { lazy } from 'react'
 import { createBrowserRouter, Navigate, useRouteError } from 'react-router-dom'
 import { RootLayout } from './components/RootLayout'
 import { RouteGuard } from './components/RouteGuard'
-import { PageLoader, PageError } from './components/PageStates'
+import { PageError } from './components/PageStates'
 import { useUIStore } from './store/uiStore'
 
 // Lazy-loaded pages
@@ -16,7 +16,6 @@ const AboutPage = lazy(() => import('./pages/AboutPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const UnauthorizedPage = lazy(() => import('./pages/UnauthorizedPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
-const ComponentsPage = lazy(() => import('./pages/ComponentsPage'))
 
 // Root index redirector based on current persona
 const HomeRedirect: React.FC = () => {
@@ -64,10 +63,6 @@ export const router = createBrowserRouter([
       {
         path: 'about',
         element: <AboutPage />,
-      },
-      {
-        path: 'components',
-        element: <ComponentsPage />,
       },
       {
         path: 'login',

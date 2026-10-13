@@ -1,8 +1,8 @@
 """Simulation benchmark service and replay state coordinator."""
+import csv
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from pathlib import Path
-import pandas as pd
 
 
 from app.services.fairness_service import FairnessService
@@ -21,10 +21,11 @@ class SimulationService:
         improvement_pct = 67.8
         if backtest_path.exists():
             try:
-                df = pd.read_csv(backtest_path)
-                row = df[df["model"] == "lightgbm_quantile_conformal"]
-                if not row.empty:
-                    improvement_pct = float(row.iloc[0]["improvement_over_naive_pct"])
+                with backtest_path.open(newline="", encoding="utf-8") as backtest_file:
+                    for row in csv.DictReader(backtest_file):
+                        if row.get("model") == "lightgbm_quantile_conformal":
+                            improvement_pct = float(row["improvement_over_naive_pct"])
+                            break
             except Exception:
                 pass
 
@@ -59,4 +60,3 @@ class SimulationService:
         }
         comparison["impact_summary"]["forecasting_mae_improvement_pct"] = improvement_pct
         return comparison
-

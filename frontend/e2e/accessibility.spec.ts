@@ -9,24 +9,12 @@ import AxeBuilder from '@axe-core/playwright'
 
 const BASE = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173'
 
-async function loginAs(
-  page: import('@playwright/test').Page,
-  role: 'driver' | 'operator'
-) {
-  await page.addInitScript(({ role }) => {
-    localStorage.setItem(
-      'ev-ui-store',
-      JSON.stringify({
-        state: {
-          accessToken: 'mock-token',
-          userRole: role,
-          username: role,
-          persona: role === 'operator' ? 'operator' : 'driver',
-        },
-        version: 0,
-      })
-    )
-  }, { role })
+async function stubUnavailableAPI(page: import('@playwright/test').Page) {
+  await page.route('**/api/v1/**', (route) => route.fulfill({
+    status: 503,
+    contentType: 'application/json',
+    body: JSON.stringify({ detail: 'Test API unavailable' }),
+  }))
 }
 
 const SCREENS = [
@@ -39,8 +27,8 @@ const SCREENS = [
 
 for (const screen of SCREENS) {
   test(`axe: no serious violations on ${screen.name}`, async ({ page }) => {
-    await loginAs(page, screen.role)
-    await page.goto(`${BASE}${screen.path}`)
+    await stubUnavailableAPI(page)
+    await page.goto(`${BASE}${screen.path}?persona=${screen.role}`)
     await page.waitForLoadState('networkidle')
 
     const results = await new AxeBuilder({ page })

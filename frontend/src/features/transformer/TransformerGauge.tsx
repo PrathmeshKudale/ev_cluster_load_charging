@@ -12,7 +12,6 @@ export interface TransformerGaugeProps {
     loading_percent?: number
     current_load_pct?: number
     rating_kva?: number
-    [key: string]: any
   }
   warnThreshold?: number  // default 80
   critThreshold?: number  // default 90
@@ -36,13 +35,14 @@ export const TransformerGauge = React.memo(function TransformerGauge({
   kva,
   height = 260,
 }: TransformerGaugeProps) {
-  const effectivePct = peakPct ?? data?.loading_percent ?? data?.current_load_pct ?? 78.1
-  const effectiveKva = kva ?? data?.rating_kva ?? 100
+  const measuredPct = peakPct ?? data?.loading_percent ?? data?.current_load_pct
+  const effectivePct = measuredPct ?? 0
+  const effectiveKva = kva ?? data?.rating_kva
   const maxGauge = effectivePct > 100 ? 140 : 100
   const pct = Math.max(0, Math.min(maxGauge, effectivePct))
   const color = getSeverityColor(effectivePct, warnThreshold, critThreshold)
 
-  const option = useMemo(() => ({
+  const option = useMemo(() => measuredPct == null ? null : ({
     backgroundColor: 'transparent',
     animation: true,
     series: [
@@ -118,22 +118,24 @@ export const TransformerGauge = React.memo(function TransformerGauge({
         data: [
           {
             value: Math.round(pct * 10) / 10,
-            name: effectiveKva ? `${label}\n${effectiveKva} kVA rated` : label,
+            name: effectiveKva != null ? `${label}\n${effectiveKva} kVA rated` : label,
           },
         ],
       },
     ],
-  }), [pct, color, warnThreshold, critThreshold, label, effectiveKva])
+  }), [measuredPct, pct, maxGauge, color, warnThreshold, critThreshold, label, effectiveKva])
 
   const ref = useECharts(option)
 
   return (
     <div
-      role="img"
-      aria-label={`${label}: ${pct.toFixed(1)}% of capacity`}
-      style={{ width: '100%', height }}
+      role={measuredPct == null ? undefined : 'img'}
+      aria-label={measuredPct == null ? `${label}: telemetry unavailable` : `${label}: ${pct.toFixed(1)}% of capacity`}
+      style={{ width: '100%', minHeight: measuredPct == null ? 'auto' : height }}
     >
-      <div ref={ref} style={{ width: '100%', height: '100%' }} />
+      {measuredPct == null
+        ? <p style={{ color: 'var(--color-ink-300)', fontSize: '13px' }}>Transformer load telemetry is unavailable.</p>
+        : <div ref={ref} style={{ width: '100%', height: '100%' }} />}
     </div>
   )
 })

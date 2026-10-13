@@ -49,7 +49,7 @@ export const PageError: React.FC<{ error?: Error | null; reset?: () => void }> =
         style={{
           padding: '8px 20px',
           borderRadius: '6px',
-          background: 'var(--color-trafo-blue)',
+          background: 'var(--color-trafo-blue-hover)',
           color: '#fff',
           border: 'none',
           cursor: 'pointer',

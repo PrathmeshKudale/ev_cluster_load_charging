@@ -9,7 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: process.env.VITE_BASE_PATH || './',
+  base: process.env.VITE_BASE_PATH || '/',
   plugins: [
     tailwindcss(),
     react(),
@@ -37,14 +37,13 @@ export default defineConfig({
       output: {
         // Route-level code splitting: each lazy page gets its own chunk
         manualChunks(id) {
-          if (id.includes('node_modules/echarts')) return 'vendor-echarts'
           if (id.includes('node_modules/leaflet')) return 'vendor-leaflet'
           if (id.includes('node_modules/react-dom')) return 'vendor-react'
           if (id.includes('node_modules/@tanstack')) return 'vendor-query'
         },
       },
     },
-    // Bundle size budget: warn at 250 kB, error at 500 kB per chunk
+    // Warn on chunks larger than 250 kB.
     chunkSizeWarningLimit: 250,
   },
   test: {

@@ -5,7 +5,7 @@
  *
  * Usage: call once in the top-level page component.
  */
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useUIStore, type DriverMode, type UserPersona } from '../store/uiStore'
 
@@ -14,6 +14,7 @@ const VALID_PERSONAS: UserPersona[] = ['driver', 'operator']
 
 export function useUrlState() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const [isHydrated, setIsHydrated] = useState(false)
 
   const setDriverMode = useUIStore((s) => s.setDriverMode)
   const setSelectedStationId = useUIStore((s) => s.setSelectedStationId)
@@ -36,11 +37,13 @@ export function useUrlState() {
     if (station) setSelectedStationId(station)
     if (filter && ['all', 'active', 'crit'].includes(filter)) setAlertFilter(filter)
     if (personaParam && VALID_PERSONAS.includes(personaParam)) setPersona(personaParam)
+    setIsHydrated(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Write store state back to URL whenever it changes
   useEffect(() => {
+    if (!isHydrated) return
     const next = new URLSearchParams(searchParams.toString())
     next.set('mode', driverMode)
     if (selectedStationId !== 'S1') next.set('station', selectedStationId)
@@ -50,5 +53,5 @@ export function useUrlState() {
     next.set('persona', persona)
     setSearchParams(next, { replace: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [driverMode, selectedStationId, alertFilter, persona])
+  }, [isHydrated, driverMode, selectedStationId, alertFilter, persona])
 }

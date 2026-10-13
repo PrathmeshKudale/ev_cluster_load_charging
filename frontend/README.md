@@ -1,32 +1,18 @@
-# React + TypeScript + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React, TypeScript, and Vite client for the EV Cluster Load API.
 
-Currently, two official plugins are available:
+## Local development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```powershell
+npm ci
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+The Vite development server proxies `/api` and `/ws` to `http://127.0.0.1:8000`. Start the FastAPI backend before using the dashboard. Unit tests use MSW only through the test setup; the running application always uses the configured API.
+
+## Vercel
+
+The repository-level `vercel.json` configures the Vercel frontend and FastAPI services. Keep the Vercel project root at the repository root so that both services and the API rewrites are included. The frontend production build uses `VITE_API_URL=/api/v1` and the live WebSocket API path; if the backend is deployed separately, set `VITE_API_URL` to its public `/api/v1` URL and allow the Vercel site origin in the backend CORS configuration.
+
+No third-party API key is required by the frontend. Authentication accounts must be provisioned by the backend; there are no demo credentials or browser-side mock accounts.

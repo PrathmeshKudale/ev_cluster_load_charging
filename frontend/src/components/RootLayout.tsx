@@ -6,7 +6,6 @@ import {
   MapPin,
   Cpu,
   History,
-  Grid,
   User,
   Shield,
   Info,
@@ -14,7 +13,6 @@ import {
   LogOut,
   X,
 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { useUIStore, type UserPersona } from '@/store/uiStore'
 import { useUrlState } from '@/hooks/useUrlState'
 import { useWebSocket } from '@/lib/useWebSocket'
@@ -86,7 +84,7 @@ export const RootLayout: React.FC = () => {
             borderRadius: '8px',
             background:
               toastMessage.variant === 'error'
-                ? 'rgba(239, 68, 68, 0.92)'
+                ? 'var(--color-crit-red-hover)'
                 : toastMessage.variant === 'success'
                 ? 'rgba(16, 185, 129, 0.92)'
                 : 'rgba(30, 136, 229, 0.92)',
@@ -182,7 +180,7 @@ export const RootLayout: React.FC = () => {
                     borderRadius: '4px',
                   }}
                 >
-                  TX-100kVA
+                  OPERATIONS
                 </span>
               </div>
               <div
@@ -194,18 +192,7 @@ export const RootLayout: React.FC = () => {
                   gap: '6px',
                 }}
               >
-                <span
-                  style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    background: 'var(--color-safe-green)',
-                    display: 'inline-block',
-                  }}
-                />
-                <span>Metro Central C1</span>
-                <span>•</span>
-                <span style={{ color: 'var(--color-warn-amber)' }}>78.1% Load</span>
+                <span>Cluster monitoring</span>
               </div>
             </div>
           </NavLink>
@@ -362,31 +349,6 @@ export const RootLayout: React.FC = () => {
               <span>About</span>
             </NavLink>
 
-            <div style={{ width: '1px', height: '24px', background: 'var(--color-ink-700)', margin: '0 4px' }} />
-
-            <NavLink
-              to="/components"
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                fontSize: '13px',
-                fontWeight: isActive ? 600 : 500,
-                color: isActive ? 'var(--color-trafo-blue)' : '#a5f3fc',
-                background: isActive ? 'rgba(30, 136, 229, 0.18)' : 'rgba(30, 136, 229, 0.08)',
-                borderRadius: '6px',
-                border: isActive ? '1px solid var(--color-trafo-blue)' : '1px solid rgba(30, 136, 229, 0.3)',
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-              })}
-            >
-              <Grid size={14} />
-              <span>/components</span>
-              <Badge variant="brand" style={{ fontSize: '10px', padding: '1px 5px' }}>
-                Catalog
-              </Badge>
-            </NavLink>
           </nav>
 
           {/* Right Controls: Persona Switcher & Auth */}
@@ -474,7 +436,7 @@ export const RootLayout: React.FC = () => {
                   gap: '4px',
                   padding: '4px 8px',
                   fontSize: '12px',
-                  color: 'var(--color-trafo-blue)',
+                  color: 'var(--color-ink-100)',
                   background: 'rgba(30, 136, 229, 0.08)',
                   border: '1px solid rgba(30, 136, 229, 0.3)',
                   borderRadius: '6px',

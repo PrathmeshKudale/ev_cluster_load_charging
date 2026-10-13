@@ -1,4 +1,6 @@
 """User aggregate repository for authentication, RBAC lookup, and user profile management."""
+from __future__ import annotations
+
 import logging
 from typing import Optional
 from sqlalchemy import select
@@ -6,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import User
 from app.db.repositories.base import BaseRepository
-from app.services.user_service import UserDTO, _DEMO_USERS
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,8 @@ class UserRepository(BaseRepository):
 
     async def get_by_username(self, username: str) -> Optional[UserDTO]:
         """Fetch user by username from DB or fallback demo store."""
+        from app.services.user_service import UserDTO, _DEMO_USERS
+
         if not self.is_memory_mode and self.session:
             try:
                 stmt = select(User).where(User.username == username)
@@ -38,6 +41,8 @@ class UserRepository(BaseRepository):
 
     async def get_by_hash(self, user_hash: str) -> Optional[UserDTO]:
         """Fetch user by anonymized user_hash."""
+        from app.services.user_service import UserDTO, _DEMO_USERS
+
         if not self.is_memory_mode and self.session:
             try:
                 stmt = select(User).where(User.user_hash == user_hash)

@@ -7,9 +7,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import joblib
 import numpy as np
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +72,9 @@ class ShapExplainer:
             return False
 
         try:
+            import joblib
             import shap
+
             forecaster = joblib.load(model_path)
             # Use the P50 median or P90 upper model for tree attribution
             target_model = None
@@ -118,13 +118,13 @@ class ShapExplainer:
         """
         cls.initialize()
 
-        # Build single-row DataFrame matching trained feature column order
-        row = {f: float(features_dict.get(f, 0.0)) for f in cls._feature_names}
-        df = pd.DataFrame([row], columns=cls._feature_names)
-
         shap_vals: Optional[np.ndarray] = None
         if cls._explainer is not None:
             try:
+                import pandas as pd
+
+                row = {f: float(features_dict.get(f, 0.0)) for f in cls._feature_names}
+                df = pd.DataFrame([row], columns=cls._feature_names)
                 raw_shap = cls._explainer.shap_values(df)
                 if isinstance(raw_shap, list):
                     shap_vals = np.array(raw_shap[0][0])

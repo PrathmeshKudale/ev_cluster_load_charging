@@ -13,13 +13,13 @@ export interface StationDetailFixture {
   chargers_count: number
   kw_per_charger: number
   detour_min: number
-  latitude: number
-  longitude: number
-  active_sessions: number
-  current_active_kw: number
-  utilization_percent: number
-  erlang_c_wait_min: number
-  chargers: ChargerDetail[]
+  latitude?: number
+  longitude?: number
+  active_sessions?: number
+  current_active_kw?: number
+  utilization_percent?: number
+  erlang_c_wait_min?: number
+  chargers?: ChargerDetail[]
 }
 
 export const stationsFixture: StationDetailFixture[] = [

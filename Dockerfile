@@ -15,10 +15,8 @@ RUN npm ci --prefer-offline
 
 COPY frontend/ ./
 
-ARG VITE_API_BASE_URL=/api
-ARG VITE_USE_MOCKS=false
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-ENV VITE_USE_MOCKS=$VITE_USE_MOCKS
+ARG VITE_API_URL=/api/v1
+ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build
 
@@ -45,8 +43,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY backend/requirements.txt backend/requirements-ml.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-ml.txt
 
 COPY backend/ ./
 

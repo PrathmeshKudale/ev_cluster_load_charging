@@ -1,18 +1,18 @@
-import React, { useState } from 'react'
-import { Zap, Activity, ShieldCheck, MapPin, Globe, ExternalLink } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import React, { useCallback, useMemo, useState } from 'react'
+import { Zap, Activity, MapPin, Globe, ExternalLink } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { clusterFixture, type ClusterFixture } from '@/fixtures/clusterFixture'
+import { Badge } from '@/components/ui/badge'
+import type { ClusterFixture } from '@/fixtures/clusterFixture'
 import { StationMap, type StationMapMarker } from './StationMap'
 
 export interface ClusterMapProps {
-  data?: ClusterFixture
+  data: ClusterFixture
   selectedStationId?: string
   onSelectStation?: (stationId: string) => void
 }
 
 export const ClusterMap: React.FC<ClusterMapProps> = ({
-  data = clusterFixture,
+  data,
   selectedStationId: externalSelectedId,
   onSelectStation,
 }) => {
@@ -20,22 +20,25 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
   const [viewMode, setViewMode] = useState<'map' | 'topology'>('map')
   const selectedStationId = externalSelectedId ?? localSelectedId
 
-  const handleStationClick = (id: string) => {
+  const handleStationClick = useCallback((id: string) => {
     setLocalSelectedId(id)
     onSelectStation?.(id)
-  }
+  }, [onSelectStation])
 
   const selectedStation = data.stations.find((s) => s.id === selectedStationId) || data.stations[0]
 
-  const mapMarkers: StationMapMarker[] = data.stations.map((s) => ({
+  const mapMarkers: StationMapMarker[] = useMemo(() => data.stations
+    .filter((s): s is typeof s & { latitude: number; longitude: number } =>
+      s.latitude != null && s.longitude != null)
+    .map((s) => ({
     id: s.id,
     name: s.name,
     latitude: s.latitude,
     longitude: s.longitude,
     utilization: s.utilization_rate,
     chargers: s.chargers,
-    queueDepth: s.status === 'busy' ? 2 : s.status === 'full' ? 5 : 0,
-  }))
+    ...(s.status && { queueDepth: s.status === 'busy' ? 2 : s.status === 'full' ? 5 : 0 }),
+  })), [data.stations])
 
   // Relative SVG positions for 4 stations and transformer in a 640x360 coordinate system
   const nodePositions: Record<string, { x: number; y: number }> = {
@@ -61,7 +64,7 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
             <span>Cluster Map & Station Locations</span>
           </CardTitle>
           <p style={{ fontSize: '13px', color: 'var(--color-ink-300)', marginTop: '2px' }}>
-            {data.name} • Feeder TX-100kVA • 4 Radial Charging Hubs (Bengaluru)
+            {data.name} • Transformer rating: {data.rating_kva} kVA • {data.stations.length} stations
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -86,7 +89,9 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
               <span>Real GPS Map</span>
             </button>
             <button
-              onClick={() => setViewMode('topology')}
+              onClick={() => data.edges.length > 0 && setViewMode('topology')}
+              disabled={data.edges.length === 0}
+              title={data.edges.length === 0 ? 'Topology links are not supplied by the cluster service.' : undefined}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -98,33 +103,34 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
                 border: 'none',
                 fontSize: '12px',
                 fontWeight: 600,
-                cursor: 'pointer',
+                cursor: data.edges.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: data.edges.length === 0 ? 0.55 : 1,
               }}
             >
               <Activity size={13} />
               <span>Grid Schematic</span>
             </button>
           </div>
-          <Badge variant="brand" icon={<Activity size={12} />}>
-            OSRM + Haversine
-          </Badge>
-          <Badge variant="normal" icon={<ShieldCheck size={12} />}>
-            Feeder V-Drop: 3.49%
-          </Badge>
         </div>
       </CardHeader>
 
       <CardContent style={{ padding: 0 }}>
         {viewMode === 'map' ? (
           <div>
-            <StationMap
-              markers={mapMarkers}
-              selectedStationId={selectedStationId}
-              onMarkerClick={handleStationClick}
-              height={400}
-            />
+            {mapMarkers.length > 0 ? (
+              <StationMap
+                markers={mapMarkers}
+                selectedStationId={selectedStationId}
+                onMarkerClick={handleStationClick}
+                height={400}
+              />
+            ) : (
+              <p style={{ padding: '32px', color: 'var(--color-ink-300)' }}>
+                Station coordinates are not available from the cluster service.
+              </p>
+            )}
             {/* Real GPS Coordinates telemetry bar */}
-            <div
+            {selectedStation && <div
               style={{
                 padding: '12px 16px',
                 backgroundColor: 'var(--color-ink-900)',
@@ -139,14 +145,18 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <MapPin size={16} color="var(--color-trafo-blue)" />
                 <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
-                  {selectedStation.name} ({selectedStation.id})
+                  {selectedStation?.name} ({selectedStation?.id})
                 </span>
                 <span style={{ fontSize: '12px', color: 'var(--color-ink-300)' }}>
-                  • GPS: <b style={{ color: '#fff' }}>{selectedStation.latitude.toFixed(4)}° N, {selectedStation.longitude.toFixed(4)}° E</b> (Central Bengaluru)
+                  {selectedStation?.latitude != null && selectedStation.longitude != null
+                    ? <>• GPS: <b style={{ color: '#fff' }}>{selectedStation.latitude.toFixed(4)}°, {selectedStation.longitude.toFixed(4)}°</b></>
+                    : '• GPS coordinates unavailable'}
                 </span>
               </div>
               <a
-                href={`https://www.google.com/maps?q=${selectedStation.latitude},${selectedStation.longitude}`}
+                href={selectedStation?.latitude != null && selectedStation.longitude != null
+                  ? `https://www.google.com/maps?q=${selectedStation.latitude},${selectedStation.longitude}`
+                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedStation?.name ?? '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -162,7 +172,7 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
                 <span>View on Google Maps</span>
                 <ExternalLink size={12} />
               </a>
-            </div>
+            </div>}
           </div>
         ) : (
           <div
@@ -188,17 +198,6 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
               </pattern>
             </defs>
             <rect width="640" height="370" fill="url(#grid)" />
-
-            {/* Feeder lines from Transformer T1 to S1 */}
-            <line
-              x1={nodePositions.T1.x}
-              y1={nodePositions.T1.y}
-              x2={nodePositions.S1.x}
-              y2={nodePositions.S1.y}
-              stroke="var(--color-trafo-blue)"
-              strokeWidth="2.5"
-              strokeDasharray="4 2"
-            />
 
             {/* ST-GNN directed edges between stations */}
             {data.edges.map((edge, idx) => {
@@ -252,7 +251,7 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
                 fontSize="10"
                 fontFamily="var(--font-mono)"
               >
-                100 kVA (78.1%)
+                {data.rating_kva} kVA
               </text>
             </g>
 
@@ -261,7 +260,7 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
               const pos = nodePositions[st.id]
               if (!pos) return null
               const isSelected = st.id === selectedStationId
-              const stColor = statusColors[st.status]
+              const stColor = st.status ? statusColors[st.status] : 'var(--color-ink-400)'
 
               return (
                 <g
@@ -271,7 +270,7 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
                   onClick={() => handleStationClick(st.id)}
                   tabIndex={0}
                   role="button"
-                  aria-label={`${st.name} station, ${st.active_chargers} of ${st.chargers} bays active`}
+                  aria-label={`${st.name} station, ${st.chargers} bays`}
                   onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleStationClick(st.id)}
                 >
                   {/* Outer pulse circle if selected */}
@@ -309,7 +308,9 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
                     fontWeight="600"
                     fontFamily="var(--font-mono)"
                   >
-                    {st.active_chargers}/{st.chargers} Plugs
+                    {st.active_chargers != null
+                      ? `${st.active_chargers}/${st.chargers} Plugs`
+                      : `${st.chargers} Plugs`}
                   </text>
                 </g>
               )
@@ -339,9 +340,9 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
                 {selectedStation.name} ({selectedStation.id})
               </span>
               <Badge
-                variant={selectedStation.status === 'full' ? 'crit' : selectedStation.status === 'busy' ? 'warn' : 'normal'}
+                variant={selectedStation.status === 'full' ? 'crit' : selectedStation.status === 'busy' ? 'warn' : selectedStation.status ? 'normal' : 'neutral'}
               >
-                {selectedStation.status.toUpperCase()}
+                {selectedStation.status?.toUpperCase() ?? 'LIVE STATE UNAVAILABLE'}
               </Badge>
             </div>
             <div
@@ -354,7 +355,7 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
               }}
             >
               <span>Capacity: {selectedStation.chargers} × {selectedStation.kw} kW</span>
-              <span>Active Load: {selectedStation.current_kw} kW</span>
+              {selectedStation.current_kw != null && <span>Active Load: {selectedStation.current_kw} kW</span>}
               <span>Detour: {selectedStation.detour_min} min</span>
             </div>
           </div>

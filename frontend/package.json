@@ -7,14 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "oxlint",
+    "lint": "oxlint src",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:cov": "vitest run --coverage",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
-    "demo": "cross-env VITE_USE_MOCKS=true VITE_API_BASE_URL='' tsc -b && cross-env VITE_USE_MOCKS=true VITE_API_BASE_URL='' vite build --outDir dist-demo",
-    "demo:serve": "vite preview --outDir dist-demo --port 4173",
     "gen:api": "openapi-typescript http://localhost:8000/openapi.json -o src/lib/openapi.d.ts"
   },
   "dependencies": {

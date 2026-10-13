@@ -14,7 +14,6 @@ const LABEL_MAP: Record<string, string> = {
   stations: 'Stations',
   replay: 'Replay',
   about: 'About & Methodology',
-  components: 'Component Library',
   login: 'Login',
 }
 
