@@ -51,7 +51,10 @@ async function mockRecommendationAPI(page: import('@playwright/test').Page) {
   })
 }
 
-async function mockDriverDashboardAPI(page: import('@playwright/test').Page) {
+async function mockDriverDashboardAPI(
+  page: import('@playwright/test').Page,
+  locationVerified = true,
+) {
   await page.route('**/api/v1/clusters', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -64,8 +67,9 @@ async function mockDriverDashboardAPI(page: import('@playwright/test').Page) {
         chargers: 4,
         kw: 7.4,
         detour: 2,
-        latitude: 12.9716,
-        longitude: 77.5946,
+        latitude: locationVerified ? 12.9716 : null,
+        longitude: locationVerified ? 77.5946 : null,
+        location_verified: locationVerified,
       }],
     }),
   }))
@@ -79,8 +83,9 @@ async function mockDriverDashboardAPI(page: import('@playwright/test').Page) {
         chargers: 4,
         kw: 7.4,
         detour: 2,
-        latitude: 12.9716,
-        longitude: 77.5946,
+        latitude: locationVerified ? 12.9716 : null,
+        longitude: locationVerified ? 77.5946 : null,
+        location_verified: locationVerified,
       }],
       total: 1,
       page: 1,
@@ -103,6 +108,16 @@ test.describe('Driver golden path', () => {
     await page.waitForLoadState('networkidle')
 
     await expect(page.getByRole('heading', { name: /substation cluster station map/i })).toBeVisible()
+    await expect(page.getByRole('application', { name: /ev charging station map/i })).toBeVisible()
+  })
+
+  test('renders the Kolhapur basemap when station locations are not verified', async ({ page }) => {
+    await mockDriverDashboardAPI(page, false)
+    await navigateAs(page, 'driver', '/driver')
+    await page.waitForLoadState('networkidle')
+
+    await expect(page.getByRole('application', { name: /ev charging station map/i })).toBeVisible()
+    await expect(page.getByRole('status')).toContainText(/map shown at kolhapur/i)
   })
 
   test('navigates to /driver/recommend and loads strategy options', async ({ page }) => {

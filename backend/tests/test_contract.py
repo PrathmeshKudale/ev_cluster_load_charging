@@ -42,6 +42,7 @@ def test_get_clusters():
     assert len(data["stations"]) == 4
     assert all(station["latitude"] is None for station in data["stations"])
     assert all(station["longitude"] is None for station in data["stations"])
+    assert all(station["location_verified"] is False for station in data["stations"])
 
 
 def test_get_stations_paginated():
@@ -56,6 +57,7 @@ def test_get_stations_paginated():
     assert len(data["items"]) == 2
     assert all(station["latitude"] is None for station in data["items"])
     assert all(station["longitude"] is None for station in data["items"])
+    assert all(station["location_verified"] is False for station in data["items"])
 
 
 def test_get_forecast():

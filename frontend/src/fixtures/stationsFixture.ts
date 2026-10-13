@@ -15,6 +15,7 @@ export interface StationDetailFixture {
   detour_min: number
   latitude?: number
   longitude?: number
+  location_verified?: boolean
   active_sessions?: number
   current_active_kw?: number
   utilization_percent?: number

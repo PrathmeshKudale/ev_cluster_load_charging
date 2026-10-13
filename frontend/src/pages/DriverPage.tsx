@@ -46,6 +46,7 @@ export const DriverPage: React.FC = () => {
     detour_min: item.detour,
     latitude: item.latitude,
     longitude: item.longitude,
+    location_verified: item.location_verified,
   }))
 
   const clusterMapData: ClusterFixture = {
@@ -63,6 +64,7 @@ export const DriverPage: React.FC = () => {
       detour_min: station.detour,
       latitude: station.latitude,
       longitude: station.longitude,
+      location_verified: station.location_verified,
     })),
     edges: [],
   }

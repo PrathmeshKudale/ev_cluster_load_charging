@@ -83,6 +83,7 @@ class ClusterRepository(BaseRepository):
                     "detour": float(s.detour_min),
                     "latitude": None if s.is_synthetic else float(s.latitude),
                     "longitude": None if s.is_synthetic else float(s.longitude),
+                    "location_verified": not s.is_synthetic,
                 })
 
             return {
@@ -152,6 +153,7 @@ class ClusterRepository(BaseRepository):
                     "detour": float(s.detour_min),
                     "latitude": None if s.is_synthetic else float(s.latitude),
                     "longitude": None if s.is_synthetic else float(s.longitude),
+                    "location_verified": not s.is_synthetic,
                 })
 
             return station_dicts, total_items

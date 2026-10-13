@@ -26,6 +26,7 @@ interface StationMapProps {
   critThreshold?: number    // 0–1, default 0.9
   onMarkerClick?: (id: string) => void
   height?: number
+  initialCenter: [number, number]
 }
 
 function severityHex(util: number, warn: number, crit: number): string {
@@ -54,13 +55,14 @@ export const StationMap = React.memo(function StationMap({
   critThreshold = 0.9,
   onMarkerClick,
   height = 380,
+  initialCenter,
 }: StationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
   const clusterGroupRef = useRef<any>(null)
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current || markers.length === 0) return
+    if (!containerRef.current || mapRef.current) return
 
     let map: any
     let L: typeof import('leaflet')
@@ -78,13 +80,11 @@ export const StationMap = React.memo(function StationMap({
       await import('leaflet.markercluster/dist/MarkerCluster.Default.css')
       if (disposed) return
 
-      const centre: [number, number] = [markers[0].latitude, markers[0].longitude]
-
       const container = containerRef.current
       if (!container) return
       map = L.map(container, {
-        center: centre,
-        zoom: 13,
+        center: initialCenter,
+        zoom: markers.length > 0 ? 13 : 12,
         zoomControl: true,
         attributionControl: true,
       })
@@ -95,13 +95,14 @@ export const StationMap = React.memo(function StationMap({
         maxZoom: 19,
       }).addTo(map)
 
-      // Marker cluster group for EV charging stations
-      const group = (L as any).markerClusterGroup({
-        spiderfyOnMaxZoom: true,
-        showCoverageOnHover: false,
-        zoomToBoundsOnClick: true,
-        maxClusterRadius: 50,
-      })
+      const group = markers.length > 0
+        ? (L as any).markerClusterGroup({
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            maxClusterRadius: 50,
+          })
+        : null
 
       markers.forEach((m) => {
         const color = m.utilization == null
@@ -149,15 +150,17 @@ export const StationMap = React.memo(function StationMap({
         if (onMarkerClick) {
           marker.on('click', () => onMarkerClick(m.id))
         }
-        group.addLayer(marker)
+        group?.addLayer(marker)
       })
 
-      map.addLayer(group)
+      if (group) map.addLayer(group)
 
-      // Fit bounds including transformer and stations
-      const allCoords: [number, number][] = markers.map(m => [m.latitude, m.longitude])
-      const bounds = L.latLngBounds(allCoords)
-      map.fitBounds(bounds, { padding: [40, 40] })
+      if (markers.length > 1) {
+        const allCoords: [number, number][] = markers.map(m => [m.latitude, m.longitude])
+        map.fitBounds(L.latLngBounds(allCoords), { padding: [40, 40] })
+      } else if (markers.length === 1) {
+        map.setView([markers[0].latitude, markers[0].longitude], 14)
+      }
 
       mapRef.current = map
       clusterGroupRef.current = group
@@ -180,7 +183,7 @@ export const StationMap = React.memo(function StationMap({
         clusterGroupRef.current = null
       }
     }
-  }, [markers, selectedStationId, warnThreshold, critThreshold, onMarkerClick])
+  }, [markers, selectedStationId, warnThreshold, critThreshold, onMarkerClick, initialCenter])
 
   // Pan / center map if selectedStationId changes
   useEffect(() => {

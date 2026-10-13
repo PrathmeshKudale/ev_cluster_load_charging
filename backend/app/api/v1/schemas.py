@@ -15,6 +15,7 @@ class StationSchema(BaseModel):
     detour: float = Field(..., examples=[0.0], description="Average detour time in minutes from main corridor")
     latitude: Optional[float] = Field(None, examples=[12.9716], description="WGS84 latitude")
     longitude: Optional[float] = Field(None, examples=[77.5946], description="WGS84 longitude")
+    location_verified: bool = Field(False, description="Whether coordinates are verified for navigation")
 
 
 class ClusterResponse(BaseModel):

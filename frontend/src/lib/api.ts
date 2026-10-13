@@ -112,6 +112,7 @@ export interface ClusterResponse {
     detour: number
     latitude?: number
     longitude?: number
+    location_verified?: boolean
   }>
 }
 
@@ -223,6 +224,7 @@ export interface StationDetail {
   detour: number
   latitude?: number
   longitude?: number
+  location_verified?: boolean
   utilization_pct?: number
   queue_count?: number
 }

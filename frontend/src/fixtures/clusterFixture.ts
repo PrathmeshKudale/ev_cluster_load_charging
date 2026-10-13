@@ -20,6 +20,7 @@ export interface ClusterFixture {
     detour_min: number
     latitude?: number
     longitude?: number
+    location_verified?: boolean
     active_chargers?: number
     current_kw?: number
     utilization_rate?: number

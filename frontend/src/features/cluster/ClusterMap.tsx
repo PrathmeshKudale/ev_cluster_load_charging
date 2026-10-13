@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import type { ClusterFixture } from '@/fixtures/clusterFixture'
 import { StationMap, type StationMapMarker } from './StationMap'
 
+const DEFAULT_MAP_CENTER: [number, number] = [16.7050, 74.2433]
+
 export interface ClusterMapProps {
   data: ClusterFixture
   selectedStationId?: string
@@ -29,7 +31,7 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
 
   const mapMarkers: StationMapMarker[] = useMemo(() => data.stations
     .filter((s): s is typeof s & { latitude: number; longitude: number } =>
-      s.latitude != null && s.longitude != null)
+      s.location_verified === true && s.latitude != null && s.longitude != null)
     .map((s) => ({
     id: s.id,
     name: s.name,
@@ -117,16 +119,18 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
       <CardContent style={{ padding: 0 }}>
         {viewMode === 'map' ? (
           <div>
-            {mapMarkers.length > 0 ? (
-              <StationMap
-                markers={mapMarkers}
-                selectedStationId={selectedStationId}
-                onMarkerClick={handleStationClick}
-                height={400}
-              />
-            ) : (
-              <p style={{ padding: '32px', color: 'var(--color-ink-300)' }}>
-                Station coordinates are not available from the cluster service.
+            <StationMap
+              markers={mapMarkers}
+              selectedStationId={selectedStationId}
+              onMarkerClick={handleStationClick}
+              height={400}
+              initialCenter={mapMarkers.length > 0
+                ? [mapMarkers[0].latitude, mapMarkers[0].longitude]
+                : DEFAULT_MAP_CENTER}
+            />
+            {mapMarkers.length === 0 && (
+              <p role="status" style={{ padding: '12px 16px', color: 'var(--color-ink-300)' }}>
+                Map shown at Kolhapur. Station pins appear when verified location data is connected.
               </p>
             )}
             {/* Real GPS Coordinates telemetry bar */}
@@ -148,30 +152,38 @@ export const ClusterMap: React.FC<ClusterMapProps> = ({
                   {selectedStation?.name} ({selectedStation?.id})
                 </span>
                 <span style={{ fontSize: '12px', color: 'var(--color-ink-300)' }}>
-                  {selectedStation?.latitude != null && selectedStation.longitude != null
+                  {selectedStation?.location_verified
+                    && selectedStation.latitude != null
+                    && selectedStation.longitude != null
                     ? <>• GPS: <b style={{ color: '#fff' }}>{selectedStation.latitude.toFixed(4)}°, {selectedStation.longitude.toFixed(4)}°</b></>
                     : '• GPS coordinates unavailable'}
                 </span>
               </div>
-              <a
-                href={selectedStation?.latitude != null && selectedStation.longitude != null
-                  ? `https://www.google.com/maps?q=${selectedStation.latitude},${selectedStation.longitude}`
-                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedStation?.name ?? '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '12px',
-                  color: 'var(--color-trafo-blue)',
-                  textDecoration: 'none',
-                  fontWeight: 600,
-                }}
-              >
-                <span>View on Google Maps</span>
-                <ExternalLink size={12} />
-              </a>
+              {selectedStation?.location_verified
+                && selectedStation.latitude != null
+                && selectedStation.longitude != null ? (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${selectedStation.latitude},${selectedStation.longitude}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '12px',
+                      color: 'var(--color-trafo-blue)',
+                      textDecoration: 'none',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>Get Directions</span>
+                    <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  <span style={{ fontSize: '12px', color: 'var(--color-ink-400)' }}>
+                    Directions unavailable until this station location is verified
+                  </span>
+                )}
             </div>}
           </div>
         ) : (
