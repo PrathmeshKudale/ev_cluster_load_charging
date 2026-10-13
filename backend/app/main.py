@@ -127,4 +127,5 @@ class SPAStaticFiles(StaticFiles):
 # Mount static frontend dashboard with SPA client-side routing fallback
 dist_dir = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 ui_dir = dist_dir if dist_dir.exists() else (Path(__file__).resolve().parents[2] / "frontend")
-app.mount("/", SPAStaticFiles(directory=ui_dir, html=True), name="ui")
+if ui_dir.is_dir():
+    app.mount("/", SPAStaticFiles(directory=ui_dir, html=True), name="ui")

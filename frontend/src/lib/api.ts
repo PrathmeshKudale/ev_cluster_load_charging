@@ -62,10 +62,11 @@ async function apiFetch<T>(
       const res = await fetch(`${BASE_URL}${path}`, { ...init, headers })
       if (!res.ok) {
         let body: unknown = null
+        const responseText = await res.text()
         try {
-          body = await res.json()
+          body = JSON.parse(responseText)
         } catch {
-          body = await res.text()
+          body = responseText
         }
         const message =
           (body as { detail?: string })?.detail ??
