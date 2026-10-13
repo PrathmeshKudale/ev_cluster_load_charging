@@ -12,6 +12,15 @@ from app.db.repositories.base import BaseRepository
 logger = logging.getLogger(__name__)
 
 
+def _station_response(station: Dict) -> Dict:
+    """Hide illustrative coordinates until a station has verified navigation data."""
+    result = station.copy()
+    if not result.get("location_verified", False):
+        result["latitude"] = None
+        result["longitude"] = None
+    return result
+
+
 class ClusterRepository(BaseRepository):
     """Repository managing Cluster aggregate root and associated grid entities."""
 
@@ -24,7 +33,7 @@ class ClusterRepository(BaseRepository):
             return {
                 "transformer_kva": TRANSFORMER_KVA,
                 "power_factor": POWER_FACTOR,
-                "stations": STATIONS_CONFIG,
+                "stations": [_station_response(station) for station in STATIONS_CONFIG],
             }
 
         try:
@@ -53,7 +62,7 @@ class ClusterRepository(BaseRepository):
                 return {
                     "transformer_kva": rating_kva,
                     "power_factor": pf,
-                    "stations": STATIONS_CONFIG,
+                    "stations": [_station_response(station) for station in STATIONS_CONFIG],
                 }
 
             # For each station, count chargers and find max_kw
@@ -72,8 +81,8 @@ class ClusterRepository(BaseRepository):
                     "chargers": count if count > 0 else 4,
                     "kw": float(max_kw) if max_kw else 7.4,
                     "detour": float(s.detour_min),
-                    "latitude": float(s.latitude),
-                    "longitude": float(s.longitude),
+                    "latitude": None if s.is_synthetic else float(s.latitude),
+                    "longitude": None if s.is_synthetic else float(s.longitude),
                 })
 
             return {
@@ -86,7 +95,7 @@ class ClusterRepository(BaseRepository):
             return {
                 "transformer_kva": TRANSFORMER_KVA,
                 "power_factor": POWER_FACTOR,
-                "stations": STATIONS_CONFIG,
+                "stations": [_station_response(station) for station in STATIONS_CONFIG],
             }
 
     async def list_stations(
@@ -103,7 +112,7 @@ class ClusterRepository(BaseRepository):
             total_items = len(STATIONS_CONFIG)
             start_idx = (page - 1) * page_size
             end_idx = start_idx + page_size
-            return STATIONS_CONFIG[start_idx:end_idx], total_items
+            return [_station_response(station) for station in STATIONS_CONFIG[start_idx:end_idx]], total_items
 
         try:
             query = select(Station)
@@ -119,7 +128,7 @@ class ClusterRepository(BaseRepository):
                 total_items = len(STATIONS_CONFIG)
                 start_idx = (page - 1) * page_size
                 end_idx = start_idx + page_size
-                return STATIONS_CONFIG[start_idx:end_idx], total_items
+                return [_station_response(station) for station in STATIONS_CONFIG[start_idx:end_idx]], total_items
 
             offset_val = (page - 1) * page_size
             query = query.order_by(Station.id).offset(offset_val).limit(page_size)
@@ -141,8 +150,8 @@ class ClusterRepository(BaseRepository):
                     "chargers": count if count > 0 else 4,
                     "kw": float(max_kw) if max_kw else 7.4,
                     "detour": float(s.detour_min),
-                    "latitude": float(s.latitude),
-                    "longitude": float(s.longitude),
+                    "latitude": None if s.is_synthetic else float(s.latitude),
+                    "longitude": None if s.is_synthetic else float(s.longitude),
                 })
 
             return station_dicts, total_items
@@ -151,7 +160,7 @@ class ClusterRepository(BaseRepository):
             total_items = len(STATIONS_CONFIG)
             start_idx = (page - 1) * page_size
             end_idx = start_idx + page_size
-            return STATIONS_CONFIG[start_idx:end_idx], total_items
+            return [_station_response(station) for station in STATIONS_CONFIG[start_idx:end_idx]], total_items
 
     async def get_transformer(self, transformer_id: str = "T1") -> Optional[Dict]:
         """Retrieve transformer electrical parameters."""

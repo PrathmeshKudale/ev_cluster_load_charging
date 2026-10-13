@@ -2,6 +2,9 @@ export interface CandidateRecommendation {
   rank: number
   station_id: string
   station_name: string
+  latitude?: number
+  longitude?: number
+  location_verified?: boolean
   hour: number
   starts_in_h: number
   available_bays?: number

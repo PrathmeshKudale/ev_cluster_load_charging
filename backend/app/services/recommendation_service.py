@@ -184,6 +184,9 @@ class RecommendationService:
                 candidates.append({
                     "station": station["name"],
                     "station_id": sid,
+                    "location_verified": bool(station.get("location_verified", False)),
+                    "latitude": station.get("latitude") if station.get("location_verified", False) else None,
+                    "longitude": station.get("longitude") if station.get("location_verified", False) else None,
                     "hour": h,
                     "starts_in_h": offset,
                     "wait_min": round(wait, 1),

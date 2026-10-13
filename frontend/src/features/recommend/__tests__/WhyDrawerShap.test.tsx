@@ -5,6 +5,31 @@ import { RecommendationCard } from '../RecommendationCard'
 import { recommendationFixture } from '@/fixtures/recommendationFixture'
 
 describe('RecommendationCard Why Drawer with SHAP Explanations', () => {
+  it('uses verified station coordinates for Google Maps directions', () => {
+    const rec = {
+      ...recommendationFixture.top3[0],
+      latitude: 37.4219999,
+      longitude: -122.0840575,
+      location_verified: true,
+    }
+    render(<RecommendationCard recommendation={rec} />)
+
+    expect(screen.getAllByRole('link', { name: /get directions/i })[0])
+      .toHaveAttribute('href', 'https://www.google.com/maps/dir/?api=1&destination=37.4219999%2C-122.0840575')
+  })
+
+  it('does not offer directions for unverified station coordinates', () => {
+    const rec = {
+      ...recommendationFixture.top3[0],
+      latitude: 37.4219999,
+      longitude: -122.0840575,
+    }
+    render(<RecommendationCard recommendation={rec} />)
+
+    expect(screen.queryByRole('link', { name: /get directions/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(/directions are unavailable/i)
+  })
+
   it('renders recommendation card with initial metrics', () => {
     const rec = recommendationFixture.top3[0]
     render(<RecommendationCard recommendation={rec} />)

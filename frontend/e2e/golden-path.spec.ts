@@ -35,6 +35,9 @@ async function mockRecommendationAPI(page: import('@playwright/test').Page) {
         top3: [{
           station: `${mode} test station`,
           station_id: 'test-station',
+          latitude: 37.4219999,
+          longitude: -122.0840575,
+          location_verified: true,
           hour: 14,
           starts_in_h: 1,
           wait_min: 4.2,
@@ -116,6 +119,17 @@ test.describe('Driver golden path', () => {
 
     await page.getByRole('button', { name: /fastest route/i }).click()
     await expect(page.getByText('fastest test station')).toBeVisible()
+  })
+
+  test('Get Directions targets the verified station coordinates', async ({ page }) => {
+    await navigateAs(page, 'driver', '/driver/recommend')
+    await page.waitForLoadState('networkidle')
+
+    await expect(page.getByRole('link', { name: /get directions/i }).first())
+      .toHaveAttribute(
+        'href',
+        'https://www.google.com/maps/dir/?api=1&destination=37.4219999%2C-122.0840575',
+      )
   })
 
   test('shows an explicit empty state when the API has no recommendations', async ({ page }) => {

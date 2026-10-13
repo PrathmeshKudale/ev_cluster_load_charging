@@ -69,6 +69,9 @@ class RecommendRequest(BaseModel):
 class CandidateSlot(BaseModel):
     station: str = Field(..., examples=["Market Road"])
     station_id: str = Field(..., examples=["S1"])
+    latitude: Optional[float] = Field(None, examples=[12.9716], description="Verified WGS84 latitude, if available")
+    longitude: Optional[float] = Field(None, examples=[77.5946], description="Verified WGS84 longitude, if available")
+    location_verified: bool = Field(False, description="Whether the station coordinates are verified for navigation")
     hour: int = Field(..., examples=[15])
     starts_in_h: int = Field(..., examples=[1])
     wait_min: float = Field(..., examples=[4.2])
@@ -287,4 +290,3 @@ class SessionSummarySchema(BaseModel):
     start_time: Optional[str] = Field(None)
     stop_time: Optional[str] = Field(None)
     reason: Optional[str] = Field(None)
-

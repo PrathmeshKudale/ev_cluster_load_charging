@@ -27,7 +27,48 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
 }) => {
   const [whyDrawerOpen, setWhyDrawerOpen] = useState(false)
   const isTopRank = recommendation.rank === 1
-  const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(recommendation.station_name)}`
+  const latitude = recommendation.latitude
+  const longitude = recommendation.longitude
+  const hasVerifiedLocation = recommendation.location_verified === true
+    && typeof latitude === 'number'
+    && Number.isFinite(latitude)
+    && latitude >= -90
+    && latitude <= 90
+    && typeof longitude === 'number'
+    && Number.isFinite(longitude)
+    && longitude >= -180
+    && longitude <= 180
+  const directionsUrl = hasVerifiedLocation
+    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${latitude},${longitude}`)}`
+    : null
+  const directionsAction = directionsUrl ? (
+    <a
+      href={directionsUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        width: '100%',
+        minHeight: '44px',
+        padding: '10px 18px',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--color-trafo-blue)',
+        color: '#fff',
+        fontWeight: 700,
+        textDecoration: 'none',
+      }}
+    >
+      <Navigation size={16} />
+      Get Directions
+    </a>
+  ) : (
+    <p role="status" style={{ color: 'var(--color-ink-300)', fontSize: '13px' }}>
+      Directions are unavailable because this station has no verified map location.
+    </p>
+  )
 
   return (
     <>
@@ -181,28 +222,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
             </button>
           </div>
 
-          <a
-            href={directionsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              width: '100%',
-              minHeight: '44px',
-              padding: '10px 18px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--color-trafo-blue)',
-              color: '#fff',
-              fontWeight: 700,
-              textDecoration: 'none',
-            }}
-          >
-            <Navigation size={16} />
-            Get Directions
-          </a>
+          {directionsAction}
         </CardContent>
       </Card>
 
@@ -436,29 +456,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
           </>
           )}
 
-          <a
-            href={directionsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              width: '100%',
-              minHeight: '44px',
-              marginTop: '8px',
-              padding: '10px 18px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--color-trafo-blue)',
-              color: '#fff',
-              fontWeight: 700,
-              textDecoration: 'none',
-            }}
-          >
-            <Navigation size={16} />
-            Get Directions
-          </a>
+          {directionsAction}
         </div>
       </Drawer>
     </>

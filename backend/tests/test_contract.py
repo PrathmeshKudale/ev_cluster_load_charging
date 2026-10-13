@@ -40,6 +40,8 @@ def test_get_clusters():
     assert "transformer_kva" in data
     assert "power_factor" in data
     assert len(data["stations"]) == 4
+    assert all(station["latitude"] is None for station in data["stations"])
+    assert all(station["longitude"] is None for station in data["stations"])
 
 
 def test_get_stations_paginated():
@@ -52,6 +54,8 @@ def test_get_stations_paginated():
     assert "total_items" in data and data["total_items"] == 4
     assert "total_pages" in data and data["total_pages"] == 2
     assert len(data["items"]) == 2
+    assert all(station["latitude"] is None for station in data["items"])
+    assert all(station["longitude"] is None for station in data["items"])
 
 
 def test_get_forecast():
@@ -99,6 +103,9 @@ def test_post_recommend():
         assert rec["grid_load_pct"] <= 90.0
         assert "station" in rec
         assert "score" in rec
+        assert rec["location_verified"] is False
+        assert rec["latitude"] is None
+        assert rec["longitude"] is None
 
 
 def test_post_replay_start():
@@ -189,5 +196,3 @@ def test_swagger_docs_and_openapi_examples():
         for method, operation in methods.items():
             assert "summary" in operation or "description" in operation, f"Missing description in {method} {path}"
             assert "responses" in operation, f"Missing responses in {method} {path}"
-
-

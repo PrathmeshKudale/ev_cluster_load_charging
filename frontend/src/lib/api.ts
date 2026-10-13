@@ -139,6 +139,9 @@ export interface TransformerRiskResponse {
 export interface CandidateSlot {
   station: string
   station_id: string
+  latitude?: number | null
+  longitude?: number | null
+  location_verified?: boolean
   hour: number
   starts_in_h: number
   wait_min: number
