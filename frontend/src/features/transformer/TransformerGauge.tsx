@@ -38,8 +38,8 @@ export const TransformerGauge = React.memo(function TransformerGauge({
   const measuredPct = peakPct ?? data?.loading_percent ?? data?.current_load_pct
   const effectivePct = measuredPct ?? 0
   const effectiveKva = kva ?? data?.rating_kva
-  const maxGauge = effectivePct > 100 ? 140 : 100
-  const pct = Math.max(0, Math.min(maxGauge, effectivePct))
+  const maxGauge = Math.max(100, Math.ceil(effectivePct / 20) * 20)
+  const pct = Math.max(0, effectivePct)
   const color = getSeverityColor(effectivePct, warnThreshold, critThreshold)
 
   const option = useMemo(() => measuredPct == null ? null : ({
@@ -52,8 +52,8 @@ export const TransformerGauge = React.memo(function TransformerGauge({
         endAngle: -20,
         min: 0,
         max: maxGauge,
-        radius: '90%',
-        center: ['50%', '60%'],
+        radius: '88%',
+        center: ['50%', '62%'],
         splitNumber: 5,
         // Track (background arc)
         progress: {
@@ -99,16 +99,9 @@ export const TransformerGauge = React.memo(function TransformerGauge({
             color: '#0a1f24',
           },
         },
-        title: {
-          show: true,
-          offsetCenter: [0, '-25%'],
-          fontSize: 13,
-          fontWeight: 600,
-          color: '#9bb7bc',
-        },
         detail: {
           valueAnimation: true,
-          offsetCenter: [0, '15%'],
+          offsetCenter: [0, '32%'],
           fontSize: 32,
           fontWeight: 700,
           color,
@@ -118,24 +111,46 @@ export const TransformerGauge = React.memo(function TransformerGauge({
         data: [
           {
             value: Math.round(pct * 10) / 10,
-            name: effectiveKva != null ? `${label}\n${effectiveKva} kVA rated` : label,
           },
         ],
       },
     ],
-  }), [measuredPct, pct, maxGauge, color, warnThreshold, critThreshold, label, effectiveKva])
+  }), [measuredPct, pct, maxGauge, color, warnThreshold, critThreshold])
 
   const ref = useECharts(option)
 
   return (
     <div
       role={measuredPct == null ? undefined : 'img'}
-      aria-label={measuredPct == null ? `${label}: telemetry unavailable` : `${label}: ${pct.toFixed(1)}% of capacity`}
-      style={{ width: '100%', minHeight: measuredPct == null ? 'auto' : height }}
+      aria-label={measuredPct == null
+        ? `${label}: telemetry unavailable`
+        : `${label}: ${pct.toFixed(1)}% of capacity${effectiveKva == null ? '' : `, ${effectiveKva} kVA rated capacity`}`}
+      style={{
+        width: '100%',
+        height: measuredPct == null ? 'auto' : `${height}px`,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
     >
       {measuredPct == null
         ? <p style={{ color: 'var(--color-ink-300)', fontSize: '13px' }}>Transformer load telemetry is unavailable.</p>
-        : <div ref={ref} style={{ width: '100%', height: '100%' }} />}
+        : (
+          <>
+            <div
+              aria-hidden="true"
+              style={{
+                flex: '0 0 28px',
+                textAlign: 'center',
+                color: 'var(--color-ink-300)',
+                fontSize: '13px',
+                fontWeight: 600,
+              }}
+            >
+              {label}{effectiveKva == null ? '' : ` · ${effectiveKva} kVA rated`}
+            </div>
+            <div ref={ref} style={{ width: '100%', height: `${height - 28}px`, minHeight: 0 }} />
+          </>
+        )}
     </div>
   )
 })

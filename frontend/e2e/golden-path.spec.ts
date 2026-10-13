@@ -48,6 +48,44 @@ async function mockRecommendationAPI(page: import('@playwright/test').Page) {
   })
 }
 
+async function mockDriverDashboardAPI(page: import('@playwright/test').Page) {
+  await page.route('**/api/v1/clusters', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      transformer_kva: 100,
+      power_factor: 0.95,
+      stations: [{
+        id: 'test-station',
+        name: 'Test Station',
+        chargers: 4,
+        kw: 7.4,
+        detour: 2,
+        latitude: 12.9716,
+        longitude: 77.5946,
+      }],
+    }),
+  }))
+  await page.route('**/api/v1/stations**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      items: [{
+        id: 'test-station',
+        name: 'Test Station',
+        chargers: 4,
+        kw: 7.4,
+        detour: 2,
+        latitude: 12.9716,
+        longitude: 77.5946,
+      }],
+      total: 1,
+      page: 1,
+      page_size: 10,
+    }),
+  }))
+}
+
 // ──────────────────────────────────────────────────────────────
 // Golden path: Driver request → recommendation → Why drawer
 // ──────────────────────────────────────────────────────────────
@@ -57,12 +95,11 @@ test.describe('Driver golden path', () => {
   })
 
   test('navigates to /driver and shows dashboard content', async ({ page }) => {
+    await mockDriverDashboardAPI(page)
     await navigateAs(page, 'driver', '/driver')
     await page.waitForLoadState('networkidle')
 
-    // Page title or heading present
-    const heading = page.getByRole('heading').first()
-    await expect(heading).toBeVisible()
+    await expect(page.getByRole('heading', { name: /substation cluster station map/i })).toBeVisible()
   })
 
   test('navigates to /driver/recommend and loads strategy options', async ({ page }) => {

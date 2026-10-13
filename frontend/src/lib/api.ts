@@ -42,7 +42,8 @@ export function initApiClient(
 async function apiFetch<T>(
   path: string,
   init: RequestInit = {},
-  retries = 2
+  retries = 2,
+  notifyErrors = true,
 ): Promise<T> {
   const token = _getToken()
   const headers: Record<string, string> = {
@@ -68,10 +69,18 @@ async function apiFetch<T>(
         } catch {
           body = responseText
         }
-        const message =
-          (body as { detail?: string })?.detail ??
-          `HTTP ${res.status}: ${res.statusText}`
-        _showToast(message, 'error')
+        const errorBody = body as {
+          detail?: unknown
+          error?: { message?: unknown }
+        } | null
+        const message = typeof errorBody?.detail === 'string'
+          ? errorBody.detail
+          : typeof errorBody?.error?.message === 'string'
+            ? errorBody.error.message
+            : res.status === 401
+              ? 'Invalid username or password.'
+              : `HTTP ${res.status}: ${res.statusText}`
+        if (notifyErrors) _showToast(message, 'error')
         throw new ApiError(res.status, body, message)
       }
       if (res.status === 204) return undefined as unknown as T
@@ -84,7 +93,7 @@ async function apiFetch<T>(
       }
     }
   }
-  _showToast(lastErr?.message ?? 'Network error', 'error')
+  if (notifyErrors) _showToast(lastErr?.message ?? 'Network error', 'error')
   throw lastErr
 }
 
@@ -273,7 +282,7 @@ export const api = {
       apiFetch<TokenResponse>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ username, password }),
-      }),
+      }, 0, false),
     refresh: (refresh_token: string) =>
       apiFetch<TokenResponse>('/auth/refresh', {
         method: 'POST',

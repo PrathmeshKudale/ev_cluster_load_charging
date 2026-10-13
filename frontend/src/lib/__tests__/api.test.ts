@@ -43,4 +43,25 @@ describe('API error responses', () => {
 
     expect(showToast).toHaveBeenCalledWith('Transformer unavailable', 'error')
   })
+
+  it('shows the backend authentication message inline without a duplicate toast', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        error: {
+          code: 'INVALID_CREDENTIALS',
+          message: 'Invalid username or password.',
+          details: null,
+        },
+      }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } },
+    )))
+    initApiClient(() => null, showToast)
+
+    await expect(api.auth.login('someone', 'wrong')).rejects.toMatchObject({
+      status: 401,
+      message: 'Invalid username or password.',
+    })
+
+    expect(showToast).not.toHaveBeenCalled()
+  })
 })
